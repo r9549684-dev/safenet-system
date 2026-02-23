@@ -858,7 +858,7 @@ class _SettingsTabState extends State<_SettingsTab> {
                 child: Column(children: [
                   _SettingsRow(
                     icon: '⚠️', title: 'Kill Switch',
-                    subtitle: 'Блокировка трафика при обрыве',
+                    subtitle: 'Твой IP не засветится при обрыве',
                     trailing: _Toggle(
                       value: _killSwitch,
                       onChanged: (v) async {
