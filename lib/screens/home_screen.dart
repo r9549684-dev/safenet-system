@@ -34,7 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       await vpn.loadServers();
       if (!mounted) return;
-      await vpn.checkAutoConnect(isPremium: auth.user?.isPremium ?? false);
+      final hasFullAccess = (auth.user?.isPremium ?? false) || (auth.user?.isTrialActive ?? false);
+      await vpn.checkAutoConnect(isPremium: hasFullAccess);
       // Тихая пред-регистрация — ускоряет первое подключение (цель — 5 секунд)
       if (!auth.isAuth) {
         final country = await SecureStorage.getCountry() ?? 'IR';
@@ -101,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   vpn.status == VpnStatus.error) {
                                 if (vpn.status == VpnStatus.error) {
                                   final auth = context.read<AuthProvider>();
-                                  final isPremium = auth.user?.isPremium ?? false;
+                                  final isPremium = (auth.user?.isPremium ?? false) || (auth.user?.isTrialActive ?? false);
                                   _connectCount++;
                                   if (!isPremium && _connectCount % 2 == 0 && mounted) {
                                     await _showPaymentSheet(context);
@@ -110,14 +111,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                   vpn.connect(
                                     countryCode: server.country,
                                     mode: _mode,
-                                    isPremium: auth.user?.isPremium ?? false,
+                                    isPremium: isPremium,
                                   );
                                 } else {
                                   vpn.disconnect();
                                 }
                               } else if (vpn.status == VpnStatus.disconnected) {
                                 final auth = context.read<AuthProvider>();
-                                final isPremium = auth.user?.isPremium ?? false;
+                                final isPremium = (auth.user?.isPremium ?? false) || (auth.user?.isTrialActive ?? false);
                                 _connectCount++;
                                 if (!isPremium && _connectCount % 2 == 0 && mounted) {
                                   await _showPaymentSheet(context);
@@ -126,14 +127,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                 vpn.connect(
                                   countryCode: server.country,
                                   mode: _mode,
-                                  isPremium: auth.user?.isPremium ?? false,
+                                  isPremium: isPremium,
                                 );
                               }
                             },
                             onModeChange: (m) => setState(() => _mode = m),
                             onServerTap: () async {
                               final auth = context.read<AuthProvider>();
-                              if (!(auth.user?.isPremium ?? false) && context.mounted) {
+                              final hasFullAccess = (auth.user?.isPremium ?? false) || (auth.user?.isTrialActive ?? false);
+                              if (!hasFullAccess && context.mounted) {
                                 await _showPaymentSheet(context);
                               }
                               if (!context.mounted) return;
@@ -485,9 +487,12 @@ class _HomeTab extends StatelessWidget {
                                   fontSize: 12, fontWeight: FontWeight.w800,
                                   color: Color(0xFFF59E0B))),
                               const SizedBox(height: 2),
-                              const Text(
-                                'Сессии по 30 мин · Нет авто-подключения',
-                                style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+                              Text(
+                                days > 0
+                                  ? 'Во время триала: безлимит как Premium'
+                                  : 'После триала: сессии по 5 минут',
+                                style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                              ),
                               const SizedBox(height: 6),
                               const Text(
                                 'Перейти на Premium →',
@@ -580,9 +585,9 @@ class _PremiumTabState extends State<_PremiumTab> {
                         color: AppTheme.success, letterSpacing: 2)))),
               ]),
               const Divider(color: AppTheme.border, height: 16, thickness: 0.5),
-              const _FeatureRow('Длительность сессии', trial: '30 мин', premium: 'Безлимит ♾'),
+              const _FeatureRow('Длительность сессии', trial: '3 дня безлимит', premium: 'Безлимит ♾'),
               _featureDivider(),
-              const _FeatureRow('Авто-подключение', trial: '✗', premium: '✓'),
+              const _FeatureRow('Авто-подключение', trial: '✓ (3 дня)', premium: '✓'),
               _featureDivider(),
               const _FeatureRow('Kill Switch', trial: '✓', premium: '✓'),
               _featureDivider(),
@@ -615,8 +620,8 @@ class _PremiumTabState extends State<_PremiumTab> {
                   Expanded(
                     child: Text(
                       days <= 0
-                        ? 'Триал истёк — подключение заблокировано'
-                        : 'Триал заканчивается через $days ${_daysWord(days)}. После — VPN недоступен.',
+                        ? 'Триал истёк — доступны сессии по 5 минут.'
+                        : 'Триал заканчивается через $days ${_daysWord(days)}. Пока действует — полный Premium.',
                       style: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.error),
                     ),

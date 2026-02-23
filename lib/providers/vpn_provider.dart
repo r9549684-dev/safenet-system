@@ -27,7 +27,7 @@ class VpnProvider extends ChangeNotifier {
   int    _lastTxBytes = 0;
 
   // Session access control
-  bool _isPremiumSession = false;  // true — premium, false — trial/free
+  bool _isUnlimitedSession = false;  // true — premium/active trial, false — post-trial free
 
   VpnStatus       get status          => _status;
   VpnServer?      get selected        => _selected;
@@ -76,7 +76,7 @@ class VpnProvider extends ChangeNotifier {
   }
 
   Future<void> connect({String? countryCode, String mode = 'stealth', bool isPremium = false}) async {
-    _isPremiumSession = isPremium;
+    _isUnlimitedSession = isPremium;
     // Авто-регистрация если нет токена
     final token = await SecureStorage.getToken();
     if (token == null) {
@@ -177,17 +177,15 @@ class VpnProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Авто-подключение только для premium-пользователей.
-  /// Триальным пользователям авто-подключение запрещено — должны подключаться вручную.
+  /// Авто-подключение для пользователей с полным доступом (premium или активный trial).
   Future<void> checkAutoConnect({bool isPremium = false}) async {
-    if (!isPremium) return; // триал — только ручное подключение
+    if (!isPremium) return;
     final should = await SecureStorage.getAutoConnect();
     if (should && _status == VpnStatus.disconnected) {
       await connect(isPremium: true);
     }
   }
-
-  static const _trialSessionMinutes = 30;
+  static const _postTrialSessionMinutes = 5;
 
   void _startTimer() {
     Future.doWhile(() async {
@@ -195,9 +193,9 @@ class VpnProvider extends ChangeNotifier {
       if (_connectedAt != null && _status == VpnStatus.connected) {
         _elapsed = DateTime.now().difference(_connectedAt!);
 
-        // Лимит 30 минут для триальных пользователей
-        if (!_isPremiumSession && _elapsed.inMinutes >= _trialSessionMinutes) {
-          await _disconnectTrialLimit();
+        // Лимит 5 минут после окончания trial (free-режим)
+        if (!_isUnlimitedSession && _elapsed.inMinutes >= _postTrialSessionMinutes) {
+          await _disconnectPostTrialLimit();
           return false;
         }
 
@@ -221,8 +219,8 @@ class VpnProvider extends ChangeNotifier {
     });
   }
 
-  /// Автоотключение по истечению 30-минутной триальной сессии.
-  Future<void> _disconnectTrialLimit() async {
+  /// Автоотключение по истечению 5-минутной post-trial сессии.
+  Future<void> _disconnectPostTrialLimit() async {
     try { await _service.disconnect(); } catch (_) {}
     _status       = VpnStatus.error;
     _active       = null;
@@ -233,7 +231,7 @@ class VpnProvider extends ChangeNotifier {
     _txSpeed      = 0;
     _lastRxBytes  = 0;
     _lastTxBytes  = 0;
-    _error = '⏱ 30-мин триальная сессия завершена. Откройте приложение и нажмите RETRY для переподключения.';
+    _error = '⏱ 5-мин сессия после триала завершена. Нажмите RETRY для переподключения.';
     notifyListeners();
   }
 }

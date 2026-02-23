@@ -6,7 +6,7 @@ class AppConstants {
 
   // Trial
   static const int trialDays = 3;
-  static const int freeDisconnectMinutes = 30;
+  static const int freeDisconnectMinutes = 5;
 
   // Storage keys
   static const String keyAccessToken = 'access_token';
