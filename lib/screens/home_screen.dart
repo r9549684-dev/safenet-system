@@ -884,40 +884,68 @@ class _SettingsTabState extends State<_SettingsTab> {
                 ]),
               ),
               const SizedBox(height: 32),
-              Center(
-                child: TextButton(
-                  onPressed: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: ctx,
-                      builder: (d) => AlertDialog(
-                        backgroundColor: AppTheme.surface,
-                        title: const Text('Сбросить устройство?',
-                          style: TextStyle(color: AppTheme.textPrimary)),
-                        content: const Text('Все данные будут удалены.',
-                          style: TextStyle(color: AppTheme.textSecondary)),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(d, false),
-                            child: const Text('Отмена')),
-                          TextButton(
-                            onPressed: () => Navigator.pop(d, true),
-                            child: const Text('Сбросить',
-                              style: TextStyle(color: AppTheme.error))),
-                        ],
+              SizedBox(
+                width: double.infinity,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppTheme.error.withValues(alpha: 0.12),
+                    border: Border.all(color: AppTheme.error.withValues(alpha: 0.35)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.restart_alt_rounded, color: AppTheme.error),
+                    label: const Text(
+                      'Вернуться к первоначальным настройкам',
+                      style: TextStyle(
+                        color: AppTheme.error,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
                       ),
-                    );
-                    if (confirmed == true && ctx.mounted) {
-                      await ctx.read<AuthProvider>().logout();
-                      if (ctx.mounted) {
-                        Navigator.of(ctx).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const SplashScreen()),
-                          (route) => false,
-                        );
+                    ),
+                    onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: ctx,
+                        builder: (d) => AlertDialog(
+                          backgroundColor: AppTheme.surface,
+                          title: const Text('Начнём сначала?',
+                            style: TextStyle(color: AppTheme.textPrimary)),
+                          content: const Text(
+                            'Все начнется заново.',
+                            style: TextStyle(color: AppTheme.textSecondary),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(d, false),
+                              child: const Text('Отмена'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(d, true),
+                              child: const Text(
+                                'Подтвердить',
+                                style: TextStyle(color: AppTheme.error),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true && ctx.mounted) {
+                        await ctx.read<AuthProvider>().logout();
+                        if (ctx.mounted) {
+                          Navigator.of(ctx).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (_) => const SplashScreen()),
+                            (route) => false,
+                          );
+                        }
                       }
-                    }
-                  },
-                  child: const Text('Сбросить настройки устройства',
-                    style: TextStyle(color: AppTheme.error, fontSize: 14, fontWeight: FontWeight.w700)),
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
