@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../config/theme.dart';
 import '../providers/affiliate_provider.dart';
 
@@ -34,7 +35,7 @@ class _AffiliateScreenState extends State<AffiliateScreen> {
           backgroundColor: AppTheme.bg,
           appBar: AppBar(
             backgroundColor: AppTheme.surface,
-            title: const Text('Партнёрская программа',
+            title: const Text('Реферальная программа',
                 style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w800)),
             iconTheme: const IconThemeData(color: AppTheme.textPrimary),
           ),
@@ -82,7 +83,11 @@ class _AffiliateScreenState extends State<AffiliateScreen> {
                   const SizedBox(height: 12),
                   _WithdrawalHistory(withdrawals: p.withdrawals),
                 ] else ...[
-                  _ProgressCard(),
+                  _DiscountCard(),
+                  const SizedBox(height: 12),
+                  _PartnerTiersCard(),
+                  const SizedBox(height: 12),
+                  _QrCard(code: p.profile?['referral_code'] ?? ''),
                   const SizedBox(height: 12),
                   _BecomePartnerCard(
                     onApply: (wallet) async {
@@ -154,7 +159,7 @@ class _StatsCard extends StatelessWidget {
           if (discount > 0)
             _StatItem(label: 'Скидка', value: '$discount%', color: AppTheme.warning),
           if (!isPartner && discount == 0)
-            _StatItem(label: 'Тип', value: 'Юзер', color: AppTheme.textMuted),
+            _StatItem(label: 'Подключи друга', value: '-50%', color: AppTheme.primary),
         ]),
       ]),
     );
@@ -174,7 +179,7 @@ class _TypeBadge extends StatelessWidget {
       border: Border.all(color: (isPartner ? AppTheme.success : AppTheme.primary).withOpacity(0.3)),
     ),
     child: Text(
-      isPartner ? 'ПАРТНЁР' : 'ЮЗЕР',
+      isPartner ? 'ПАРТНЁР' : 'ПОЛЬЗОВАТЕЛЬ',
       style: TextStyle(
         fontSize: 10, fontWeight: FontWeight.w800,
         color: isPartner ? AppTheme.success : AppTheme.primary,
@@ -458,7 +463,7 @@ class _BecomePartnerCardState extends State<_BecomePartnerCard> {
       const Text('🚀 Стать партнёром',
         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
       const SizedBox(height: 8),
-      const Text('Зарабатывай до 25% с каждой оплаты твоих рефералов',
+      const Text('Доступно от 11 платящих рефералов. Выплаты на TON-кошелёк.',
         style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
       const SizedBox(height: 12),
       TextField(
