@@ -89,6 +89,10 @@ APK будет лежать в: `build/app/outputs/flutter-apk/app-release.apk`
 - **VPN:** Подключение к VLESS Reality (Xray).
 - **Payments:** Оплата через CryptoBot (WebUrl).
 - **Affiliate:** Экран статистики, реферальная ссылка, QR-код.
+- **Доступ и ограничения:**
+  - Первые **3 дня** — полный доступ как у Premium.
+  - После окончания триала — сессии по **5 минут**.
+  - `Kill Switch` защищает от утечки IP при обрыве VPN.
 
 ---
 
@@ -101,7 +105,7 @@ APK будет лежать в: `build/app/outputs/flutter-apk/app-release.apk`
 1. Загрузить обновленные файлы на сервер (через `scp` или `git pull`).
 2. Перезапустить контейнер:
    ```bash
-   ssh root@89.208.107.67 "cd /opt/safenet-v2 && docker compose restart api"
+   ssh root@89.208.107.67 "cd /opt/safenet-v2/infra && docker compose up -d api"
    ```
 
 **Полезные команды:**
