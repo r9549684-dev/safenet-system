@@ -83,9 +83,9 @@ class _AffiliateScreenState extends State<AffiliateScreen> {
                   const SizedBox(height: 12),
                   _WithdrawalHistory(withdrawals: p.withdrawals),
                 ] else ...[
-                  _DiscountCard(),
+                  const _DiscountCard(),
                   const SizedBox(height: 12),
-                  _PartnerTiersCard(),
+                  const _PartnerTiersCard(),
                   const SizedBox(height: 12),
                   _QrCard(code: p.profile?['referral_code'] ?? ''),
                   const SizedBox(height: 12),
@@ -121,8 +121,8 @@ class _ErrorBanner extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: AppTheme.error.withOpacity(0.1),
-      border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+      color: AppTheme.error.withValues(alpha: 0.1),
+      border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
       borderRadius: BorderRadius.circular(12),
     ),
     child: Text(error, style: const TextStyle(color: AppTheme.error, fontSize: 12)),
@@ -159,7 +159,7 @@ class _StatsCard extends StatelessWidget {
           if (discount > 0)
             _StatItem(label: 'Скидка', value: '$discount%', color: AppTheme.warning),
           if (!isPartner && discount == 0)
-            _StatItem(label: 'Подключи друга', value: '-50%', color: AppTheme.primary),
+            const _StatItem(label: 'Подключи друга', value: '-50%', color: AppTheme.primary),
         ]),
       ]),
     );
@@ -174,9 +174,9 @@ class _TypeBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
-      color: (isPartner ? AppTheme.success : AppTheme.primary).withOpacity(0.15),
+      color: (isPartner ? AppTheme.success : AppTheme.primary).withValues(alpha: 0.15),
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: (isPartner ? AppTheme.success : AppTheme.primary).withOpacity(0.3)),
+      border: Border.all(color: (isPartner ? AppTheme.success : AppTheme.primary).withValues(alpha: 0.3)),
     ),
     child: Text(
       isPartner ? 'ПАРТНЁР' : 'ПОЛЬЗОВАТЕЛЬ',
@@ -245,14 +245,14 @@ class _DiscountCard extends StatelessWidget {
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       gradient: LinearGradient(colors: [
-        const Color(0xFFF59E0B).withOpacity(0.15),
-        const Color(0xFFF97316).withOpacity(0.08),
+        const Color(0xFFF59E0B).withValues(alpha: 0.15),
+        const Color(0xFFF97316).withValues(alpha: 0.08),
       ]),
-      border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.35)),
+      border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.35)),
       borderRadius: BorderRadius.circular(20),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: const [
+      const Row(children: [
         Text('🎁', style: TextStyle(fontSize: 22)),
         SizedBox(width: 8),
         Expanded(child: Text('ВПН за 50% цены',
@@ -266,9 +266,9 @@ class _DiscountCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppTheme.bg,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.2)),
+          border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.2)),
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+        child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('👥 Подключи друга',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
               color: Color(0xFFF59E0B))),
@@ -284,7 +284,7 @@ class _DiscountCard extends StatelessWidget {
         ]),
       ),
       const SizedBox(height: 10),
-      Row(children: const [
+      const Row(children: [
         Icon(Icons.info_outline_rounded, size: 13, color: AppTheme.textMuted),
         SizedBox(width: 5),
         Expanded(child: Text(
@@ -305,14 +305,14 @@ class _PartnerTiersCard extends StatelessWidget {
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       gradient: LinearGradient(colors: [
-        AppTheme.primary.withOpacity(0.12),
-        AppTheme.success.withOpacity(0.06),
+        AppTheme.primary.withValues(alpha: 0.12),
+        AppTheme.success.withValues(alpha: 0.06),
       ]),
-      border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+      border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
       borderRadius: BorderRadius.circular(20),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: const [
+      const Row(children: [
         Text('🚀', style: TextStyle(fontSize: 22)),
         SizedBox(width: 8),
         Expanded(child: Text('Стать партнёром',
@@ -323,7 +323,7 @@ class _PartnerTiersCard extends StatelessWidget {
       const Text('От 11 платящих рефералов — реальный доход на TON',
         style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
       const SizedBox(height: 14),
-      Row(children: const [
+      const Row(children: [
         SizedBox(width: 88, child: Text('Рефералов',
           style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
             color: AppTheme.textMuted, letterSpacing: 1))),
@@ -390,7 +390,7 @@ class _QrCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (code.isEmpty) return const SizedBox.shrink();
-    final url = 'https://safenetvpn.com/dl?ref=' + code;
+    final url = 'https://safenetvpn.com/dl?ref=$code';
     return _GlassCard(
       child: Column(children: [
         const Text('📲 QR-код для друзей',
@@ -423,7 +423,7 @@ class _QrCard extends StatelessWidget {
                 content: Text('Ссылка скопирована'),
                 duration: Duration(seconds: 2)));
           },
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
+          child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(Icons.copy_rounded, size: 14, color: AppTheme.primary),
             SizedBox(width: 6),
             Text('Скопировать ссылку',
@@ -615,9 +615,9 @@ class _BecomePartnerCardState extends State<_BecomePartnerCard> {
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       gradient: LinearGradient(
-        colors: [AppTheme.primary.withOpacity(0.15), AppTheme.success.withOpacity(0.08)],
+        colors: [AppTheme.primary.withValues(alpha: 0.15), AppTheme.success.withValues(alpha: 0.08)],
       ),
-      border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+      border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
       borderRadius: BorderRadius.circular(20),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -721,9 +721,9 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(status,
         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),

@@ -58,14 +58,14 @@ class _ServersScreenState extends State<ServersScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
-                border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+                color: AppTheme.primary.withValues(alpha: 0.1),
+                border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(children: [
                 Container(
                   width: 44, height: 44,
-                  decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.primaryDark),
+                  decoration: const BoxDecoration(shape: BoxShape.circle, color: AppTheme.primaryDark),
                   child: const Icon(Icons.bolt_rounded, color: Colors.white),
                 ),
                 const SizedBox(width: 14),

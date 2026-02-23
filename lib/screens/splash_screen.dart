@@ -82,7 +82,7 @@ class _SplashScreenState extends State<SplashScreen> {
           Container(
             width: 100, height: 100,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.15),
+              color: AppColors.primary.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.shield_rounded, size: 56, color: AppColors.primary),
@@ -92,7 +92,7 @@ class _SplashScreenState extends State<SplashScreen> {
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 8),
           Text('Secure. Private. Free.',
-            style: TextStyle(color: Colors.white.withOpacity(0.5))),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.5))),
           const SizedBox(height: 48),
           const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
         ],
@@ -111,7 +111,7 @@ class _SplashScreenState extends State<SplashScreen> {
             Container(
               width: 90, height: 90,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.15),
+                color: AppColors.primary.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.shield_rounded, size: 50, color: AppColors.primary),
@@ -160,7 +160,7 @@ class _LangButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            border: Border.all(color: AppColors.primary.withOpacity(0.25)),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(

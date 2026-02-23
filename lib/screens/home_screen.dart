@@ -67,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Container(width: 256, height: 256,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppTheme.primary.withOpacity(0.2),
+                    color: AppTheme.primary.withValues(alpha: 0.2),
                   ),
                 ),
               ),
@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Container(width: 256, height: 256,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppTheme.success.withOpacity(0.1),
+                    color: AppTheme.success.withValues(alpha: 0.1),
                   ),
                 ),
               ),
@@ -231,7 +231,7 @@ class _HomeTab extends StatelessWidget {
                       shape: BoxShape.circle,
                       color: status == VpnStatus.connected ? AppTheme.success : AppTheme.textMuted,
                       boxShadow: status == VpnStatus.connected
-                        ? [BoxShadow(color: AppTheme.success.withOpacity(0.6), blurRadius: 8)]
+                        ? [BoxShadow(color: AppTheme.success.withValues(alpha: 0.6), blurRadius: 8)]
                         : null,
                     ),
                   ),
@@ -280,7 +280,7 @@ class _HomeTab extends StatelessWidget {
                     width: 220, height: 220,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _btnColor.withOpacity(0.15),
+                      color: _btnColor.withValues(alpha: 0.15),
                     ),
                   ),
                   GestureDetector(
@@ -292,7 +292,7 @@ class _HomeTab extends StatelessWidget {
                         shape: BoxShape.circle,
                         color: _btnColor,
                         border: Border.all(color: _btnBorder, width: 4),
-                        boxShadow: [BoxShadow(color: _btnColor.withOpacity(0.4), blurRadius: 40)],
+                        boxShadow: [BoxShadow(color: _btnColor.withValues(alpha: 0.4), blurRadius: 40)],
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -338,9 +338,9 @@ class _HomeTab extends StatelessWidget {
                   color: AppTheme.success, letterSpacing: 4)),
             ),
             const SizedBox(height: 4),
-            Center(
+            const Center(
               child: Text('Secure Tunnel Active',
-                style: const TextStyle(fontSize: 11, color: AppTheme.success,
+                style: TextStyle(fontSize: 11, color: AppTheme.success,
                   fontWeight: FontWeight.w700, letterSpacing: 2)),
             ),
             const SizedBox(height: 12),
@@ -351,9 +351,9 @@ class _HomeTab extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.error.withOpacity(0.1),
+                  color: AppTheme.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+                  border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
                 ),
                 child: Column(children: [
                   Text(
@@ -463,11 +463,11 @@ class _HomeTab extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          const Color(0xFFF59E0B).withOpacity(0.15),
-                          const Color(0xFFF97316).withOpacity(0.15),
+                          const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                          const Color(0xFFF97316).withValues(alpha: 0.15),
                         ],
                       ),
-                      border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.4)),
+                      border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
@@ -541,7 +541,7 @@ class _PremiumTabState extends State<_PremiumTab> {
                 begin: Alignment.topLeft, end: Alignment.bottomRight),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [BoxShadow(
-                color: const Color(0xFFF59E0B).withOpacity(0.3),
+                color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
                 blurRadius: 24, offset: const Offset(0, 8))],
             ),
             child: const Icon(Icons.diamond_rounded, size: 52, color: Colors.white),
@@ -564,7 +564,7 @@ class _PremiumTabState extends State<_PremiumTab> {
             ),
             child: Column(children: [
               // Column headers
-              Row(children: const [
+              const Row(children: [
                 Expanded(flex: 5, child: SizedBox()),
                 Expanded(flex: 3,
                   child: Center(
@@ -578,17 +578,17 @@ class _PremiumTabState extends State<_PremiumTab> {
                         color: AppTheme.success, letterSpacing: 2)))),
               ]),
               const Divider(color: AppTheme.border, height: 16, thickness: 0.5),
-              _FeatureRow('Длительность сессии', trial: '30 мин', premium: 'Безлимит ♾'),
+              const _FeatureRow('Длительность сессии', trial: '30 мин', premium: 'Безлимит ♾'),
               _featureDivider(),
-              _FeatureRow('Авто-подключение', trial: '✗', premium: '✓'),
+              const _FeatureRow('Авто-подключение', trial: '✗', premium: '✓'),
               _featureDivider(),
-              _FeatureRow('Kill Switch', trial: '✓', premium: '✓'),
+              const _FeatureRow('Kill Switch', trial: '✓', premium: '✓'),
               _featureDivider(),
-              _FeatureRow('Режимы обхода', trial: 'Все 4', premium: 'Все 4'),
+              const _FeatureRow('Режимы обхода', trial: 'Все 4', premium: 'Все 4'),
               _featureDivider(),
-              _FeatureRow('Серверы', trial: 'Базовые', premium: 'Все страны'),
+              const _FeatureRow('Серверы', trial: 'Базовые', premium: 'Все страны'),
               _featureDivider(),
-              _FeatureRow('Приоритет поддержки', trial: '✗', premium: '✓'),
+              const _FeatureRow('Приоритет поддержки', trial: '✗', premium: '✓'),
             ]),
           ),
           const SizedBox(height: 20),
@@ -603,8 +603,8 @@ class _PremiumTabState extends State<_PremiumTab> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppTheme.error.withOpacity(0.08),
-                  border: Border.all(color: AppTheme.error.withOpacity(0.25)),
+                  color: AppTheme.error.withValues(alpha: 0.08),
+                  border: Border.all(color: AppTheme.error.withValues(alpha: 0.25)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(children: [
@@ -642,7 +642,7 @@ class _PremiumTabState extends State<_PremiumTab> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: _selected == p['id'] ? AppTheme.primary.withOpacity(0.1) : AppTheme.surface,
+                  color: _selected == p['id'] ? AppTheme.primary.withValues(alpha: 0.1) : AppTheme.surface,
                   border: Border.all(
                     color: _selected == p['id'] ? AppTheme.primary : Colors.transparent,
                     width: 2,
@@ -697,7 +697,7 @@ class _PremiumTabState extends State<_PremiumTab> {
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)]),
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 24, offset: const Offset(0, 8))],
+                    boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.3), blurRadius: 24, offset: const Offset(0, 8))],
                   ),
                   child: ElevatedButton(
                     onPressed: sub.isLoading ? null : () async {
@@ -952,8 +952,8 @@ class _SettingsTabState extends State<_SettingsTab> {
   Widget _badge(String text, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.2),
-      border: Border.all(color: color.withOpacity(0.3)),
+      color: color.withValues(alpha: 0.2),
+      border: Border.all(color: color.withValues(alpha: 0.3)),
       borderRadius: BorderRadius.circular(6),
     ),
     child: Text(text, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
@@ -983,7 +983,7 @@ class _BottomNav extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             decoration: BoxDecoration(
-              color: AppTheme.surface.withOpacity(0.85),
+              color: AppTheme.surface.withValues(alpha: 0.85),
               border: Border.all(color: AppTheme.border),
               borderRadius: BorderRadius.circular(32),
             ),
@@ -1052,7 +1052,7 @@ class _ModeBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppTheme.primary.withOpacity(0.15),
+        color: AppTheme.primary.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(mode,
@@ -1082,7 +1082,7 @@ class _ModeCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? AppTheme.primary.withOpacity(0.15) : AppTheme.surface,
+          color: selected ? AppTheme.primary.withValues(alpha: 0.15) : AppTheme.surface,
           border: Border.all(
             color: selected ? AppTheme.primary : AppTheme.border,
             width: selected ? 1.5 : 1,
@@ -1121,7 +1121,7 @@ class _StatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -1180,7 +1180,7 @@ class _Toggle extends StatelessWidget {
     return Switch(
       value: value,
       onChanged: onChanged,
-      activeColor: AppTheme.primary,
+      activeThumbColor: AppTheme.primary,
     );
   }
 }
@@ -1230,10 +1230,10 @@ class _PaymentSheetState extends State<_PaymentSheet> {
               children: [
                 const Text('💎', style: TextStyle(fontSize: 30)),
                 const SizedBox(width: 12),
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text('SafeNet Premium',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900,
                           color: AppTheme.textPrimary)),
@@ -1266,7 +1266,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     color: _selected == p['id']
-                        ? AppTheme.primary.withOpacity(0.1)
+                        ? AppTheme.primary.withValues(alpha: 0.1)
                         : AppTheme.bg,
                     border: Border.all(
                       color: _selected == p['id'] ? AppTheme.primary : AppTheme.border,
@@ -1323,7 +1323,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                       colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)]),
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [BoxShadow(
-                      color: AppTheme.primary.withOpacity(0.3),
+                      color: AppTheme.primary.withValues(alpha: 0.3),
                       blurRadius: 16, offset: const Offset(0, 6))],
                   ),
                   child: ElevatedButton(
