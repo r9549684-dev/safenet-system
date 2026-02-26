@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../config/theme.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/affiliate_provider.dart';
 
 class AffiliateScreen extends StatefulWidget {
@@ -35,8 +36,8 @@ class _AffiliateScreenState extends State<AffiliateScreen> {
           backgroundColor: AppTheme.bg,
           appBar: AppBar(
             backgroundColor: AppTheme.surface,
-            title: const Text('Реферальная программа',
-                style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w800)),
+            title: Text(AppLocalizations.of(ctx).affiliateAppBarTitle,
+                style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w800)),
             iconTheme: const IconThemeData(color: AppTheme.textPrimary),
           ),
           body: RefreshIndicator(
@@ -58,7 +59,7 @@ class _AffiliateScreenState extends State<AffiliateScreen> {
                       final ok = await p.updateWallet(w);
                       if (ctx.mounted) {
                         ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                          content: Text(ok ? 'Кошелёк сохранён' : (p.error ?? 'Ошибка')),
+                          content: Text(ok ? AppLocalizations.of(ctx).walletSaved : (p.error ?? AppLocalizations.of(ctx).error)),
                           backgroundColor: ok ? AppTheme.success : AppTheme.error,
                         ));
                       }
@@ -74,7 +75,7 @@ class _AffiliateScreenState extends State<AffiliateScreen> {
                       final ok = await p.requestWithdrawal(amount);
                       if (ctx.mounted) {
                         ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                          content: Text(ok ? 'Запрос на вывод создан' : (p.error ?? 'Ошибка')),
+                          content: Text(ok ? AppLocalizations.of(ctx).withdrawalCreated : (p.error ?? AppLocalizations.of(ctx).error)),
                           backgroundColor: ok ? AppTheme.success : AppTheme.error,
                         ));
                       }
@@ -94,7 +95,7 @@ class _AffiliateScreenState extends State<AffiliateScreen> {
                       final ok = await p.applyPartner(wallet);
                       if (ctx.mounted) {
                         ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                          content: Text(ok ? 'Статус партнёра активирован!' : (p.error ?? 'Ошибка')),
+                          content: Text(ok ? AppLocalizations.of(ctx).partnerActivated : (p.error ?? AppLocalizations.of(ctx).error)),
                           backgroundColor: ok ? AppTheme.success : AppTheme.error,
                         ));
                       }
@@ -146,21 +147,24 @@ class _StatsCard extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           const Text('📊 ', style: TextStyle(fontSize: 16)),
-          Text('Статистика', style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          Text(AppLocalizations.of(context).statsTitle, style: Theme.of(context).textTheme.titleMedium?.copyWith(
             color: AppTheme.textPrimary, fontWeight: FontWeight.w800)),
           const Spacer(),
           _TypeBadge(isPartner: isPartner),
         ]),
         const SizedBox(height: 16),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-          _StatItem(label: 'Рефералов', value: '$count'),
-          if (rate != null)
-            _StatItem(label: 'Ставка', value: '${(rate * 100).round()}%', color: AppTheme.success),
-          if (discount > 0)
-            _StatItem(label: 'Скидка', value: '$discount%', color: AppTheme.warning),
-          if (!isPartner && discount == 0)
-            const _StatItem(label: 'Подключи друга', value: '-50%', color: AppTheme.primary),
-        ]),
+        Builder(builder: (ctx) {
+          final l = AppLocalizations.of(ctx);
+          return Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+            _StatItem(label: l.referrals, value: '$count'),
+            if (rate != null)
+              _StatItem(label: l.rate, value: '${(rate * 100).round()}%', color: AppTheme.success),
+            if (discount > 0)
+              _StatItem(label: l.discount, value: '$discount%', color: AppTheme.warning),
+            if (!isPartner && discount == 0)
+              _StatItem(label: l.connectFriend, value: '-50%', color: AppTheme.primary),
+          ]);
+        }),
       ]),
     );
   }
@@ -179,7 +183,7 @@ class _TypeBadge extends StatelessWidget {
       border: Border.all(color: (isPartner ? AppTheme.success : AppTheme.primary).withValues(alpha: 0.3)),
     ),
     child: Text(
-      isPartner ? 'ПАРТНЁР' : 'ПОЛЬЗОВАТЕЛЬ',
+      isPartner ? AppLocalizations.of(context).typeBadgePartner : AppLocalizations.of(context).typeBadgeUser,
       style: TextStyle(
         fontSize: 10, fontWeight: FontWeight.w800,
         color: isPartner ? AppTheme.success : AppTheme.primary,
@@ -215,8 +219,8 @@ class _ReferralCodeCard extends StatelessWidget {
       const Text('🔗 ', style: TextStyle(fontSize: 16)),
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Реферальный код',
-            style: TextStyle(fontSize: 11, color: AppTheme.textMuted, letterSpacing: 1)),
+          Text(AppLocalizations.of(context).refCodeTitle,
+            style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, letterSpacing: 1)),
           const SizedBox(height: 4),
           Text(code.isNotEmpty ? code : '—',
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
@@ -228,7 +232,7 @@ class _ReferralCodeCard extends StatelessWidget {
           onPressed: () {
             Clipboard.setData(ClipboardData(text: code));
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Код скопирован'), duration: Duration(seconds: 2)));
+              SnackBar(content: Text(AppLocalizations.of(context).codeCopied), duration: const Duration(seconds: 2)));
           },
         ),
     ]),
@@ -252,13 +256,13 @@ class _DiscountCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Row(children: [
-        Text('🎁', style: TextStyle(fontSize: 22)),
-        SizedBox(width: 8),
-        Expanded(child: Text('ВПН за 50% цены',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900,
+      Builder(builder: (ctx) => Row(children: [
+        const Text('🎁', style: TextStyle(fontSize: 22)),
+        const SizedBox(width: 8),
+        Expanded(child: Text(AppLocalizations.of(ctx).discountCardTitle,
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900,
             color: AppTheme.textPrimary))),
-      ]),
+      ])),
       const SizedBox(height: 12),
       Container(
         width: double.infinity,
@@ -268,29 +272,29 @@ class _DiscountCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.2)),
         ),
-        child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('👥 Подключи друга',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
-              color: Color(0xFFF59E0B))),
-          SizedBox(height: 8),
-          Text(
-            'Приведи от 1 до 10 друзей — получи '
-            'скидку 50% на следующую оплату '
-            'за каждого платящего реферала.',
-            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.5)),
-          SizedBox(height: 6),
-          Text('1 — 10 друзей = 50% скидка за каждого',
-            style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
-        ]),
+        child: Builder(builder: (ctx) {
+          final l = AppLocalizations.of(ctx);
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(l.discountCardHeader,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
+                color: Color(0xFFF59E0B))),
+            const SizedBox(height: 8),
+            Text(l.discountCardDesc,
+              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.5)),
+            const SizedBox(height: 6),
+            Text(l.discountCardNote,
+              style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+          ]);
+        }),
       ),
       const SizedBox(height: 10),
-      const Row(children: [
-        Icon(Icons.info_outline_rounded, size: 13, color: AppTheme.textMuted),
-        SizedBox(width: 5),
+      Builder(builder: (ctx) => Row(children: [
+        const Icon(Icons.info_outline_rounded, size: 13, color: AppTheme.textMuted),
+        const SizedBox(width: 5),
         Expanded(child: Text(
-          'Друг сканирует QR или вводит код при установке — скидка применяется автоматически',
-          style: TextStyle(fontSize: 10, color: AppTheme.textMuted))),
-      ]),
+          AppLocalizations.of(ctx).discountCardInfo,
+          style: const TextStyle(fontSize: 10, color: AppTheme.textMuted))),
+      ])),
     ]),
   );
 }
@@ -312,28 +316,31 @@ class _PartnerTiersCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Row(children: [
-        Text('🚀', style: TextStyle(fontSize: 22)),
-        SizedBox(width: 8),
-        Expanded(child: Text('Стать партнёром',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900,
-            color: AppTheme.textPrimary))),
-      ]),
-      const SizedBox(height: 4),
-      const Text('От 11 платящих рефералов — реальный доход на TON',
-        style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-      const SizedBox(height: 14),
-      const Row(children: [
-        SizedBox(width: 88, child: Text('Рефералов',
-          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
-            color: AppTheme.textMuted, letterSpacing: 1))),
-        Expanded(child: Text('При 1-й оплате',
-          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
-            color: AppTheme.textMuted, letterSpacing: 1))),
-        Text('Ежемесячно',
-          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
-            color: AppTheme.textMuted, letterSpacing: 1)),
-      ]),
+      Builder(builder: (ctx) {
+        final l = AppLocalizations.of(ctx);
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('🚀', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(l.partnerTiersTitle,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900,
+              color: AppTheme.textPrimary))),
+        ]),
+        const SizedBox(height: 4),
+        Text(l.partnerTiersSubtitle,
+          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+        const SizedBox(height: 14),
+        Row(children: [
+          SizedBox(width: 88, child: Text(l.tierColReferrals,
+            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
+              color: AppTheme.textMuted, letterSpacing: 1))),
+          Expanded(child: Text(l.tierColFirstPay,
+            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
+              color: AppTheme.textMuted, letterSpacing: 1))),
+          Text(l.tierColMonthly,
+            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
+              color: AppTheme.textMuted, letterSpacing: 1)),
+        ]),
       const Divider(color: AppTheme.border, height: 10),
       const _TierRow(range: '11 – 100',    fix: '\$1.5 / чел', recurring: '—'),
       const Divider(color: AppTheme.border, height: 8),
@@ -352,11 +359,11 @@ class _PartnerTiersCard extends StatelessWidget {
           color: AppTheme.bg,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Text(
-          '\$1.5 — единовременно при первой оплате реферала\n'
-          '% — ежемесячно от каждой последующей оплаты',
-          style: TextStyle(fontSize: 10, color: AppTheme.textMuted, height: 1.6)),
+        child: Builder(builder: (ctx2) => Text(
+          AppLocalizations.of(ctx2).tierNoteText,
+          style: const TextStyle(fontSize: 10, color: AppTheme.textMuted, height: 1.6))),
       ),
+      ]); }),
     ]),
   );
 }
@@ -393,12 +400,12 @@ class _QrCard extends StatelessWidget {
     final url = 'https://safenetvpn.com/dl?ref=$code';
     return _GlassCard(
       child: Column(children: [
-        const Text('📲 QR-код для друзей',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
+        Text(AppLocalizations.of(context).qrTitle,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
             color: AppTheme.textPrimary)),
         const SizedBox(height: 4),
-        const Text('Отсканировал — скачал — твой код уже привязан',
-          style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+        Text(AppLocalizations.of(context).qrSubtitle,
+          style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
           textAlign: TextAlign.center),
         const SizedBox(height: 14),
         Container(
@@ -419,15 +426,15 @@ class _QrCard extends StatelessWidget {
           onTap: () {
             Clipboard.setData(ClipboardData(text: url));
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Ссылка скопирована'),
-                duration: Duration(seconds: 2)));
+              SnackBar(
+                content: Text(AppLocalizations.of(context).linkCopied),
+                duration: const Duration(seconds: 2)));
           },
-          child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.copy_rounded, size: 14, color: AppTheme.primary),
-            SizedBox(width: 6),
-            Text('Скопировать ссылку',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.copy_rounded, size: 14, color: AppTheme.primary),
+            const SizedBox(width: 6),
+            Text(AppLocalizations.of(context).copyLink,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
                 color: AppTheme.primary)),
           ]),
         ),
@@ -466,14 +473,14 @@ class _WalletCardState extends State<_WalletCard> {
   @override
   Widget build(BuildContext context) => _GlassCard(
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('💼 TON Кошелёк',
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+      Text(AppLocalizations.of(context).walletTitle,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
       const SizedBox(height: 10),
       TextField(
         controller: _ctrl,
         style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
         decoration: InputDecoration(
-          hintText: '0:abc... или EQabc...',
+          hintText: AppLocalizations.of(context).walletHint,
           hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
           filled: true,
           fillColor: AppTheme.bg,
@@ -503,7 +510,7 @@ class _WalletCardState extends State<_WalletCard> {
           ),
           child: _saving
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Text('Сохранить', style: TextStyle(fontWeight: FontWeight.w800)),
+              : Text(AppLocalizations.of(context).saveBtn, style: const TextStyle(fontWeight: FontWeight.w800)),
         ),
       ),
     ]),
@@ -539,12 +546,12 @@ class _WithdrawCardState extends State<_WithdrawCard> {
   @override
   Widget build(BuildContext context) => _GlassCard(
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('💸 Баланс',
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+      Text(AppLocalizations.of(context).balanceTitle,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
       const SizedBox(height: 10),
       Text('${widget.balanceTon.toStringAsFixed(4)} TON ≈ \$${widget.balanceUsd.toStringAsFixed(2)}',
         style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
-      Text('Минимум: ${widget.minTon.toStringAsFixed(4)} TON (~\$5)',
+      Text(AppLocalizations.of(context).balanceMin(widget.minTon.toStringAsFixed(4)),
         style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
       const SizedBox(height: 12),
       if (widget.canWithdraw) ...[
@@ -553,7 +560,7 @@ class _WithdrawCardState extends State<_WithdrawCard> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
           decoration: InputDecoration(
-            labelText: 'Сумма TON',
+            labelText: AppLocalizations.of(context).withdrawAmount,
             labelStyle: const TextStyle(color: AppTheme.textMuted),
             filled: true,
             fillColor: AppTheme.bg,
@@ -569,7 +576,7 @@ class _WithdrawCardState extends State<_WithdrawCard> {
           width: double.infinity,
           child: ElevatedButton.icon(
             icon: const Icon(Icons.send_rounded, size: 18),
-            label: const Text('Вывести', style: TextStyle(fontWeight: FontWeight.w800)),
+            label: Text(AppLocalizations.of(context).withdrawBtn, style: const TextStyle(fontWeight: FontWeight.w800)),
             onPressed: _withdrawing ? null : () async {
               final amount = double.tryParse(_ctrl.text);
               if (amount == null || amount <= 0) return;
@@ -584,7 +591,7 @@ class _WithdrawCardState extends State<_WithdrawCard> {
           ),
         ),
       ] else
-        Text('Недостаточно средств для вывода',
+        Text(AppLocalizations.of(context).insufficientFunds,
           style: TextStyle(color: Colors.grey[600], fontSize: 13)),
     ]),
   );
@@ -621,18 +628,18 @@ class _BecomePartnerCardState extends State<_BecomePartnerCard> {
       borderRadius: BorderRadius.circular(20),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('🚀 Стать партнёром',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
+      Text(AppLocalizations.of(context).becomePartnerTitle,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
       const SizedBox(height: 8),
-      const Text('Доступно от 11 платящих рефералов. Выплаты на TON-кошелёк.',
-        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+      Text(AppLocalizations.of(context).becomePartnerDesc,
+        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
       const SizedBox(height: 12),
       TextField(
         controller: _ctrl,
         style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
         decoration: InputDecoration(
-          labelText: 'TON кошелёк для выплат',
-          hintText: '0:abc... или EQabc...',
+          labelText: AppLocalizations.of(context).walletForPayouts,
+          hintText: AppLocalizations.of(context).walletHint,
           labelStyle: const TextStyle(color: AppTheme.textMuted),
           hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
           filled: true,
@@ -667,8 +674,8 @@ class _BecomePartnerCardState extends State<_BecomePartnerCard> {
             ),
             child: _applying
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Подать заявку',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Colors.white)),
+                : Text(AppLocalizations.of(context).applyBtn,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Colors.white)),
           ),
         ),
       ),
@@ -687,8 +694,8 @@ class _WithdrawalHistory extends StatelessWidget {
     if (withdrawals.isEmpty) return const SizedBox.shrink();
     return _GlassCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('📋 История выводов',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+        Text(AppLocalizations.of(context).withdrawHistoryTitle,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
         const SizedBox(height: 8),
         ...withdrawals.map((w) => ListTile(
           dense: true,

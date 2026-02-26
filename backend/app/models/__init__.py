@@ -5,6 +5,7 @@ from .server import Server
 from .connection import UserConnection
 from .affiliate import ReferralTransaction, WithdrawalRequest
 from .promocode import PromoCode, PromoCodeRedemption
+from .support import SupportSession, SupportMessage
 
 __all__ = [
     "User",
@@ -16,4 +17,6 @@ __all__ = [
     "WithdrawalRequest",
     "PromoCode",
     "PromoCodeRedemption",
+    "SupportSession",
+    "SupportMessage",
 ]

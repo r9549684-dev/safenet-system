@@ -13,7 +13,18 @@ class AppColors {
 }
 
 class AppTheme {
-  static ThemeData get dark => ThemeData(
+  /// Шрифт для RTL-локалей (фарси, арабский)
+  static const String rtlFont = 'Vazirmatn';
+
+  static ThemeData forLocale(Locale locale) => _buildTheme(
+    locale.languageCode == 'fa' || locale.languageCode == 'ar'
+        ? rtlFont
+        : null,
+  );
+
+  static ThemeData get dark => _buildTheme(null);
+
+  static ThemeData _buildTheme(String? fontFamily) => ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     scaffoldBackgroundColor: AppColors.background,
@@ -57,13 +68,14 @@ class AppTheme {
       ),
       hintStyle: const TextStyle(color: AppColors.textSecondary),
     ),
-    textTheme: const TextTheme(
-      headlineLarge:  TextStyle(fontSize: 32, fontWeight: FontWeight.bold,  color: AppColors.textPrimary),
-      headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,  color: AppColors.textPrimary),
-      titleLarge:     TextStyle(fontSize: 18, fontWeight: FontWeight.w600,  color: AppColors.textPrimary),
-      bodyLarge:      TextStyle(fontSize: 16, color: AppColors.textSecondary),
-      bodyMedium:     TextStyle(fontSize: 14, color: AppColors.textSecondary),
-      labelSmall:     TextStyle(fontSize: 11, color: AppColors.textSecondary),
+    fontFamily: fontFamily,
+    textTheme: TextTheme(
+      headlineLarge:  TextStyle(fontSize: 32, fontWeight: FontWeight.bold,  color: AppColors.textPrimary, fontFamily: fontFamily),
+      headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,  color: AppColors.textPrimary, fontFamily: fontFamily),
+      titleLarge:     TextStyle(fontSize: 18, fontWeight: FontWeight.w600,  color: AppColors.textPrimary, fontFamily: fontFamily),
+      bodyLarge:      TextStyle(fontSize: 16, color: AppColors.textSecondary, fontFamily: fontFamily),
+      bodyMedium:     TextStyle(fontSize: 14, color: AppColors.textSecondary, fontFamily: fontFamily),
+      labelSmall:     TextStyle(fontSize: 11, color: AppColors.textSecondary, fontFamily: fontFamily),
     ),
   );
 }

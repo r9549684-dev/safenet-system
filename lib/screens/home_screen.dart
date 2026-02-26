@@ -2,17 +2,24 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../config/theme.dart';
+import '../l10n/app_localizations.dart';
 import '../domain/enums/vpn_status.dart';
 import '../domain/models/server.dart';
 import '../providers/auth_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../providers/vpn_provider.dart';
+import '../providers/affiliate_provider.dart';
 import '../data/local/secure_storage.dart';
+import '../data/repositories/server_repo.dart';
 import 'servers_screen.dart';
 import 'splash_screen.dart';
 import 'affiliate_screen.dart';
+import 'support_screen.dart';
+import '../services/update_checker.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,6 +43,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       final hasFullAccess = (auth.user?.isPremium ?? false) || (auth.user?.isTrialActive ?? false);
       await vpn.checkAutoConnect(isPremium: hasFullAccess);
+      if (mounted) context.read<AffiliateProvider>().loadProfile();
+      if (mounted) UpdateChecker.check(context);
       // Тихая пред-регистрация — ускоряет первое подключение (цель — 5 секунд)
       if (!auth.isAuth) {
         final country = await SecureStorage.getCountry() ?? 'IR';
@@ -132,21 +141,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               }
                             },
                             onModeChange: (m) => setState(() => _mode = m),
-                            onServerTap: () async {
-                              final auth = context.read<AuthProvider>();
-                              final hasFullAccess = (auth.user?.isPremium ?? false) || (auth.user?.isTrialActive ?? false);
-                              if (!hasFullAccess && context.mounted) {
-                                await _showPaymentSheet(context);
-                              }
-                              if (!context.mounted) return;
-                              final s = await Navigator.push<VpnServer>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ServersScreen(currentId: server.id),
-                                ),
-                              );
-                              if (s != null) vpn.selectServer(s);
-                            },
                           ),
                           ServersScreen(
                             currentId: server.id,
@@ -182,14 +176,12 @@ class _HomeTab extends StatelessWidget {
   final String? error;
   final VoidCallback onToggle;
   final ValueChanged<String> onModeChange;
-  final VoidCallback onServerTap;
   final VoidCallback onUpgradeTap;
 
   const _HomeTab({
     required this.status, required this.uptime, required this.server,
     required this.mode, this.error, required this.onToggle,
-    required this.onModeChange, required this.onServerTap,
-    required this.onUpgradeTap,
+    required this.onModeChange, required this.onUpgradeTap,
   });
 
   Color get _btnColor {
@@ -214,6 +206,7 @@ class _HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       child: Column(
@@ -241,7 +234,7 @@ class _HomeTab extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    status == VpnStatus.connected ? 'Secure Tunnel Active' : 'Offline',
+                    status == VpnStatus.connected ? l.statusSecureActive : l.statusOffline,
                     style: const TextStyle(fontSize: 10, color: AppTheme.textMuted,
                       fontWeight: FontWeight.w700, letterSpacing: 2),
                   ),
@@ -253,8 +246,8 @@ class _HomeTab extends StatelessWidget {
                   final label = user == null
                       ? ''
                       : user.isPremium
-                          ? 'PREMIUM ✓'
-                          : 'ТРИАЛ: ${user.trialDaysLeft} ДНЕЙ';
+                          ? l.badgePremium
+                          : l.badgeTrial(user.trialDaysLeft);
                   if (label.isEmpty) return const SizedBox.shrink();
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -316,11 +309,11 @@ class _HomeTab extends StatelessWidget {
                             ),
                           const SizedBox(height: 8),
                           Text(
-                            status == VpnStatus.connected ? 'DISCONNECT'
-                            : status == VpnStatus.connecting ? 'CONNECTING'
-                            : status == VpnStatus.disconnecting ? 'STOPPING'
-                            : status == VpnStatus.error ? 'RETRY'
-                            : 'CONNECT',
+                            status == VpnStatus.connected ? l.btnDisconnect
+                            : status == VpnStatus.connecting ? l.btnConnecting
+                            : status == VpnStatus.disconnecting ? l.btnStopping
+                            : status == VpnStatus.error ? l.btnRetry
+                            : l.btnConnect,
                             style: TextStyle(
                               fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 2,
                               color: status == VpnStatus.disconnected ? AppTheme.primary : Colors.white,
@@ -342,9 +335,9 @@ class _HomeTab extends StatelessWidget {
                   color: AppTheme.success, letterSpacing: 4)),
             ),
             const SizedBox(height: 4),
-            const Center(
-              child: Text('Secure Tunnel Active',
-                style: TextStyle(fontSize: 11, color: AppTheme.success,
+            Center(
+              child: Text(l.statusSecureActive,
+                style: const TextStyle(fontSize: 11, color: AppTheme.success,
                   fontWeight: FontWeight.w700, letterSpacing: 2)),
             ),
             const SizedBox(height: 12),
@@ -375,8 +368,8 @@ class _HomeTab extends StatelessWidget {
                           colors: [Color(0xFFF59E0B), Color(0xFFF97316)]),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text('💎 Убрать ограничение — Premium',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white)),
+                      child: Text(l.removeLimit,
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white)),
                     ),
                   ),
                 ]),
@@ -387,48 +380,130 @@ class _HomeTab extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // Server Card
+          // Block A — Partner Banner
           GestureDetector(
-            onTap: onServerTap,
-            child: _GlassCard(
-              child: Row(
-                children: [
-                  Text(server.flag, style: const TextStyle(fontSize: 36)),
-                  const SizedBox(width: 14),
-                  Expanded(child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(server.country, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                    Text('${server.cityLabel} • ${server.ping}ms',
-                        style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                    ],
-                  )),
-                  _ModeBadge(server.mode),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.chevron_right, color: AppTheme.textMuted),
-                ],
+            onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const AffiliateScreen())),
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(
+                  color: AppTheme.primary.withValues(alpha: 0.35),
+                  blurRadius: 20, offset: const Offset(0, 6))],
               ),
+              child: Row(children: [
+                const Text('💰', style: TextStyle(fontSize: 30)),
+                const SizedBox(width: 14),
+                Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l.homeEarnTitle,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
+                    const SizedBox(height: 2),
+                    Text(l.homeEarnSubtitle,
+                      style: const TextStyle(fontSize: 11, color: Colors.white70)),
+                  ],
+                )),
+                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white60, size: 15),
+              ]),
             ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Block B — Referral QR Block
+          Consumer<AffiliateProvider>(
+            builder: (ctx, aff, _) {
+              final code = aff.profile?['referral_code'] as String? ?? '';
+              final ll = AppLocalizations.of(ctx);
+              return _GlassCard(
+                child: code.isEmpty
+                    ? Row(children: [
+                        const Text('👥', style: TextStyle(fontSize: 20)),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(ll.homeInviteTitle,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
+                            color: AppTheme.textPrimary))),
+                      ])
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(ll.homeInviteTitle,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
+                              color: AppTheme.textPrimary)),
+                          const SizedBox(height: 12),
+                          Row(children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12)),
+                              child: QrImageView(
+                                data: 'https://safenetvpn.com/dl?ref=$code',
+                                version: QrVersions.auto,
+                                size: 80,
+                                backgroundColor: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(ll.refCodeTitle,
+                                  style: const TextStyle(fontSize: 10, color: AppTheme.textMuted,
+                                    letterSpacing: 1)),
+                                const SizedBox(height: 4),
+                                Text(code,
+                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900,
+                                    color: AppTheme.textPrimary)),
+                                const SizedBox(height: 8),
+                                GestureDetector(
+                                  onTap: () {
+                                    final url = 'https://safenetvpn.com/dl?ref=$code';
+                                    Clipboard.setData(ClipboardData(text: url));
+                                    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                                      content: Text(ll.linkCopied),
+                                      duration: const Duration(seconds: 2)));
+                                  },
+                                  child: Row(children: [
+                                    const Icon(Icons.copy_rounded, size: 13, color: AppTheme.primary),
+                                    const SizedBox(width: 5),
+                                    Text(ll.copyLink,
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                                        color: AppTheme.primary)),
+                                  ]),
+                                ),
+                              ],
+                            )),
+                          ]),
+                        ],
+                      ),
+              );
+            },
           ),
 
           const SizedBox(height: 20),
 
           // Bypass Modes
-          const Text('РЕЖИМ ОБХОДА',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+          Text(l.bypassModeLabel,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
               color: AppTheme.textMuted, letterSpacing: 3)),
           const SizedBox(height: 10),
           GridView.count(
             crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 2.2,
             children: [
-              _ModeCard(id: 'stealth', label: 'Stealth', desc: 'Авто-выбор',
+              _ModeCard(id: 'stealth', label: l.modeStealthLabel, desc: l.modeStealthDesc,
                 icon: Icons.shield_rounded, selected: mode == 'stealth', onTap: onModeChange),
-              _ModeCard(id: 'byedpi', label: 'ByeDPI', desc: 'Обход DPI',
+              _ModeCard(id: 'byedpi', label: l.modeByedpiLabel, desc: l.modeByedpiDesc,
                 icon: Icons.bolt_rounded, selected: mode == 'byedpi', onTap: onModeChange),
-              _ModeCard(id: 'amnezia', label: 'AmneziaWG', desc: 'WireGuard+',
+              _ModeCard(id: 'amnezia', label: l.modeAmneziaLabel, desc: l.modeAmneziaDesc,
                 icon: Icons.lock_rounded, selected: mode == 'amnezia', onTap: onModeChange),
-              _ModeCard(id: 'hybrid', label: 'Hybrid', desc: 'Комбо',
+              _ModeCard(id: 'hybrid', label: l.modeHybridLabel, desc: l.modeHybridDesc,
                 icon: Icons.grid_view_rounded, selected: mode == 'hybrid', onTap: onModeChange),
             ],
           ),
@@ -436,13 +511,16 @@ class _HomeTab extends StatelessWidget {
           if (status == VpnStatus.connected) ...[
             const SizedBox(height: 20),
             Consumer<VpnProvider>(
-              builder: (ctx, vpn, _) => Row(children: [
-                _StatCard(label: 'Загрузка', value: vpn.rxSpeedFormatted, color: AppTheme.success),
-                const SizedBox(width: 10),
-                _StatCard(label: 'Отдача',   value: vpn.txSpeedFormatted, color: AppTheme.primary),
-                const SizedBox(width: 10),
-                _StatCard(label: 'Пинг',     value: '${server.ping}ms',   color: AppTheme.warning),
-              ]),
+              builder: (ctx, vpn, _) {
+                final ll = AppLocalizations.of(ctx);
+                return Row(children: [
+                  _StatCard(label: ll.statsDownload, value: vpn.rxSpeedFormatted, color: AppTheme.success),
+                  const SizedBox(width: 10),
+                  _StatCard(label: ll.statsUpload,   value: vpn.txSpeedFormatted, color: AppTheme.primary),
+                  const SizedBox(width: 10),
+                  _StatCard(label: ll.statsPing,     value: '${server.ping}ms',   color: AppTheme.warning),
+                ]);
+              },
             ),
           ],
 
@@ -452,11 +530,12 @@ class _HomeTab extends StatelessWidget {
               final user = auth.user;
               if (user == null || user.isPremium) return const SizedBox.shrink();
               final days = user.trialDaysLeft;
+              final ll = AppLocalizations.of(ctx);
               final urgency = days <= 1
-                  ? '🔴 Последний день триала!'
+                  ? ll.trialLastDay
                   : days <= 3
-                      ? '🟡 Осталось $days дня триала'
-                      : '⏳ Триал: $days дней';
+                      ? ll.trialFewDays(days)
+                      : ll.trialManyDays(days);
               return Padding(
                 padding: const EdgeInsets.only(top: 16),
                 child: GestureDetector(
@@ -489,14 +568,14 @@ class _HomeTab extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 days > 0
-                                  ? 'Во время триала: безлимит как Premium'
-                                  : 'После триала: сессии по 5 минут',
+                                  ? ll.trialActiveDesc
+                                  : ll.trialExpiredDesc,
                                 style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
                               ),
                               const SizedBox(height: 6),
-                              const Text(
-                                'Перейти на Premium →',
-                                style: TextStyle(
+                              Text(
+                                ll.upgradeToPremium,
+                                style: const TextStyle(
                                   fontSize: 11, fontWeight: FontWeight.w800,
                                   color: Color(0xFFF97316))),
                             ],
@@ -526,15 +605,55 @@ class _PremiumTab extends StatefulWidget {
 
 class _PremiumTabState extends State<_PremiumTab> {
   String _selected = 'quarterly';
+  final _promoCtrl = TextEditingController();
+  bool _promoLoading = false;
 
-  final _plans = [
-    {'id': 'monthly', 'label': '1 Месяц', 'price': '5.99', 'popular': false, 'save': null},
-    {'id': 'quarterly', 'label': '3 Месяца', 'price': '14.99', 'popular': true, 'save': '17%'},
-    {'id': 'yearly', 'label': '12 Месяцев', 'price': '29.99', 'popular': false, 'save': '37%'},
-  ];
+  @override
+  void dispose() {
+    _promoCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _applyPromo(BuildContext ctx) async {
+    final code = _promoCtrl.text.trim();
+    if (code.isEmpty) return;
+    setState(() => _promoLoading = true);
+    try {
+      final repo = ServerRepository();
+      final res = await repo.redeemPromo(code);
+      final months = (res['granted_months'] as num).toInt();
+      if (ctx.mounted) {
+        _promoCtrl.clear();
+        final l = AppLocalizations.of(ctx);
+        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+          content: Text(l.promoCodeSuccess(months)),
+          backgroundColor: AppTheme.success,
+        ));
+        await ctx.read<AuthProvider>().refreshUser();
+      }
+    } catch (e) {
+      if (ctx.mounted) {
+        final msg = e.toString().contains('detail')
+            ? e.toString().replaceAll(RegExp(r'.*detail.*?: ?'), '')
+            : e.toString();
+        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+          content: Text(msg),
+          backgroundColor: AppTheme.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _promoLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final plans = [
+      {'id': 'monthly',   'label': l.plan1m,  'price': '5.99',  'popular': false, 'save': null},
+      {'id': 'quarterly', 'label': l.plan3m,  'price': '14.99', 'popular': true,  'save': '17%'},
+      {'id': 'yearly',    'label': l.plan12m, 'price': '29.99', 'popular': false, 'save': '37%'},
+    ];
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       child: Column(
@@ -554,11 +673,11 @@ class _PremiumTabState extends State<_PremiumTab> {
             child: const Icon(Icons.diamond_rounded, size: 52, color: Colors.white),
           ),
           const SizedBox(height: 16),
-          const Text('SafeNet Premium',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
+          Text(l.premiumTitle,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
           const SizedBox(height: 4),
-          const Text('Безлимитный доступ ко всем технологиям',
-            style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
+          Text(l.premiumSubtitle,
+            style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
           const SizedBox(height: 20),
 
           // Feature comparison
@@ -571,31 +690,31 @@ class _PremiumTabState extends State<_PremiumTab> {
             ),
             child: Column(children: [
               // Column headers
-              const Row(children: [
-                Expanded(flex: 5, child: SizedBox()),
+              Row(children: [
+                const Expanded(flex: 5, child: SizedBox()),
                 Expanded(flex: 3,
                   child: Center(
-                    child: Text('ТРИАЛ',
-                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800,
+                    child: Text(l.colTrial,
+                      style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800,
                         color: AppTheme.textMuted, letterSpacing: 2)))),
                 Expanded(flex: 3,
                   child: Center(
-                    child: Text('PREMIUM',
-                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800,
+                    child: Text(l.colPremium,
+                      style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800,
                         color: AppTheme.success, letterSpacing: 2)))),
               ]),
               const Divider(color: AppTheme.border, height: 16, thickness: 0.5),
-              const _FeatureRow('Длительность сессии', trial: '3 дня безлимит', premium: 'Безлимит ♾'),
+              _FeatureRow(l.featureSessionLen, trial: l.featureSessionTrialVal, premium: l.featureSessionPremiumVal),
               _featureDivider(),
-              const _FeatureRow('Авто-подключение', trial: '✓ (3 дня)', premium: '✓'),
+              _FeatureRow(l.featureAutoConnect, trial: '✓ (3)', premium: '✓'),
               _featureDivider(),
-              const _FeatureRow('Kill Switch', trial: '✓', premium: '✓'),
+              _FeatureRow(l.featureKillSwitch, trial: '✓', premium: '✓'),
               _featureDivider(),
-              const _FeatureRow('Режимы обхода', trial: 'Все 4', premium: 'Все 4'),
+              _FeatureRow(l.featureBypassModes, trial: l.featureAll4, premium: l.featureAll4),
               _featureDivider(),
-              const _FeatureRow('Серверы', trial: 'Базовые', premium: 'Все страны'),
+              _FeatureRow(l.featureServers, trial: l.featureServersTrialVal, premium: l.featureServersPremiumVal),
               _featureDivider(),
-              const _FeatureRow('Приоритет поддержки', trial: '✗', premium: '✓'),
+              _FeatureRow(l.featurePrioritySupport, trial: '✗', premium: '✓'),
             ]),
           ),
           const SizedBox(height: 20),
@@ -620,8 +739,8 @@ class _PremiumTabState extends State<_PremiumTab> {
                   Expanded(
                     child: Text(
                       days <= 0
-                        ? 'Триал истёк — доступны сессии по 5 минут.'
-                        : 'Триал заканчивается через $days ${_daysWord(days)}. Пока действует — полный Premium.',
+                        ? AppLocalizations.of(ctx).trialExpiredMsg
+                        : AppLocalizations.of(ctx).trialExpiresIn(days),
                       style: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.error),
                     ),
@@ -633,15 +752,15 @@ class _PremiumTabState extends State<_PremiumTab> {
           const SizedBox(height: 20),
 
           // Plan selection label
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
-            child: Text('ВЫБЕРИТЕ ПЛАН',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800,
+            child: Text(l.choosePlan,
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800,
                 color: AppTheme.textMuted, letterSpacing: 3)),
           ),
           const SizedBox(height: 12),
 
-          ..._plans.map((p) => Padding(
+          ...plans.map((p) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: GestureDetector(
               onTap: () => setState(() => _selected = p['id'] as String),
@@ -673,13 +792,13 @@ class _PremiumTabState extends State<_PremiumTab> {
                                   colors: [Color(0xFFF59E0B), Color(0xFFF97316)]),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text('🔥 ЛУЧШАЯ ЦЕНА',
-                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
+                              child: Text(l.badgeBestPrice,
+                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
                             ),
                           ],
                         ]),
                         if (p['save'] != null)
-                          Text('Экономия ${p['save']}',
+                          Text(l.savingsLabel(p['save'] as String),
                             style: const TextStyle(fontSize: 11, color: AppTheme.success, fontWeight: FontWeight.w700)),
                       ],
                     )),
@@ -728,30 +847,81 @@ class _PremiumTabState extends State<_PremiumTab> {
                     child: sub.isLoading
                         ? const SizedBox(width: 24, height: 24,
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Оплатить в CryptoBot',
-                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Colors.white)),
+                        : Text(l.payWithCryptobot,
+                            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Colors.white)),
                   ),
                 ),
               );
             },
           ),
           const SizedBox(height: 12),
-          const Text('БЕЗОПАСНАЯ ОПЛАТА • АКТИВАЦИЯ МГНОВЕННО',
-            style: TextStyle(fontSize: 10, color: AppTheme.textMuted,
+          Text(l.safePayment,
+            style: const TextStyle(fontSize: 10, color: AppTheme.textMuted,
               fontWeight: FontWeight.w700, letterSpacing: 2)),
           const SizedBox(height: 4),
-          const Text('Оплата в USDT / TON через CryptoBot',
-            style: TextStyle(fontSize: 10, color: AppTheme.textMuted, letterSpacing: 1)),
+          Text(l.paymentDesc,
+            style: const TextStyle(fontSize: 10, color: AppTheme.textMuted, letterSpacing: 1)),
+          const SizedBox(height: 24),
+
+          // Promo code
+          Row(children: [
+            Expanded(child: Divider(color: AppTheme.border)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Text(l.promoCodeLabel,
+                style: const TextStyle(fontSize: 10, color: AppTheme.textMuted,
+                  fontWeight: FontWeight.w700, letterSpacing: 1)),
+            ),
+            Expanded(child: Divider(color: AppTheme.border)),
+          ]),
+          const SizedBox(height: 12),
+          Builder(builder: (ctx) => Row(children: [
+            Expanded(
+              child: TextField(
+                controller: _promoCtrl,
+                textCapitalization: TextCapitalization.characters,
+                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14,
+                  fontWeight: FontWeight.w700, letterSpacing: 2),
+                decoration: InputDecoration(
+                  hintText: l.promoCodeHint,
+                  hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                  filled: true,
+                  fillColor: AppTheme.surface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppTheme.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppTheme.border),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _promoLoading ? null : () => _applyPromo(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                ),
+                child: _promoLoading
+                    ? const SizedBox(width: 18, height: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(l.promoCodeApply,
+                        style: const TextStyle(color: Colors.white,
+                          fontWeight: FontWeight.w800, fontSize: 13)),
+              ),
+            ),
+          ])),
           const SizedBox(height: 20),
         ],
       ),
     );
-  }
-
-  static String _daysWord(int days) {
-    if (days == 1) return 'день';
-    if (days >= 2 && days <= 4) return 'дня';
-    return 'дней';
   }
 
   static Widget _featureDivider() =>
@@ -825,6 +995,7 @@ class _SettingsTabState extends State<_SettingsTab> {
     return Consumer<AuthProvider>(
       builder: (ctx, auth, _) {
         final user = auth.user;
+        final ll = AppLocalizations.of(ctx);
         final deviceId  = user?.deviceId ?? '—';
         final shortId   = deviceId.length > 8
             ? '${deviceId.substring(0, 4)}...${deviceId.substring(deviceId.length - 4)}'
@@ -839,33 +1010,76 @@ class _SettingsTabState extends State<_SettingsTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Настройки',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
+              Text(ll.settingsTitle,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
+              const SizedBox(height: 20),
+              _sectionLabel(ll.sectionServer),
+              Consumer<VpnProvider>(
+                builder: (ctx2, vpn2, _) {
+                  final srv = vpn2.selected ?? vpn2.active ?? VpnServer.defaults.first;
+                  return GestureDetector(
+                    onTap: () async {
+                      final s = await Navigator.push<VpnServer>(
+                        ctx2,
+                        MaterialPageRoute(builder: (_) => ServersScreen(currentId: srv.id)),
+                      );
+                      if (s != null) vpn2.selectServer(s);
+                    },
+                    child: _GlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Text(srv.audienceFlags, style: const TextStyle(fontSize: 36)),
+                            const SizedBox(width: 14),
+                            Expanded(child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(srv.audienceName,
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15,
+                                    color: AppTheme.textPrimary)),
+                                Text('${srv.forLabel} · ${srv.ping}ms',
+                                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                              ],
+                            )),
+                            _ModeBadge(srv.mode),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.chevron_right, color: AppTheme.textMuted),
+                          ]),
+                          const SizedBox(height: 8),
+                          Text(ll.serverCardDesc,
+                            style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
               const SizedBox(height: 24),
-              _sectionLabel('Аккаунт'),
+              _sectionLabel(ll.sectionAccount),
               _GlassCard(
                 padding: EdgeInsets.zero,
                 child: Column(children: [
                   _SettingsRow(
-                    icon: '🛡️', title: 'ID Устройства', subtitle: shortId,
+                    icon: '🛡️', title: ll.deviceIdLabel, subtitle: shortId,
                     trailing: _badge(badgeLabel, AppTheme.warning),
                   ),
                   const Divider(color: AppTheme.border, height: 1),
                   _SettingsRow(
-                    icon: '⏰', title: 'Истекает',
+                    icon: '⏰', title: ll.expiryLabel,
                     trailing: Text(expiryStr,
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.textSecondary)),
                   ),
                 ]),
               ),
               const SizedBox(height: 24),
-              _sectionLabel('VPN Параметры'),
+              _sectionLabel(ll.sectionVpn),
               _GlassCard(
                 padding: EdgeInsets.zero,
                 child: Column(children: [
                   _SettingsRow(
-                    icon: '⚠️', title: 'Kill Switch',
-                    subtitle: 'Твой IP не засветится при обрыве',
+                    icon: '⚠️', title: ll.featureKillSwitch,
+                    subtitle: ll.killSwitchDesc,
                     trailing: _Toggle(
                       value: _killSwitch,
                       onChanged: (v) async {
@@ -876,8 +1090,8 @@ class _SettingsTabState extends State<_SettingsTab> {
                   ),
                   const Divider(color: AppTheme.border, height: 1),
                   _SettingsRow(
-                    icon: '⚡', title: 'Авто-подключение',
-                    subtitle: 'При запуске приложения',
+                    icon: '⚡', title: ll.autoConnectLabel,
+                    subtitle: ll.autoConnectDesc,
                     trailing: _Toggle(
                       value: _autoConnect,
                       onChanged: (v) async {
@@ -899,8 +1113,8 @@ class _SettingsTabState extends State<_SettingsTab> {
                   ),
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.restart_alt_rounded, color: AppTheme.error),
-                    label: const Text(
-                      'Вернуться к первоначальным настройкам',
+                    label: Text(
+                      ll.resetSettings,
                       style: TextStyle(
                         color: AppTheme.error,
                         fontSize: 14,
@@ -912,22 +1126,22 @@ class _SettingsTabState extends State<_SettingsTab> {
                         context: ctx,
                         builder: (d) => AlertDialog(
                           backgroundColor: AppTheme.surface,
-                          title: const Text('Начнём сначала?',
-                            style: TextStyle(color: AppTheme.textPrimary)),
-                          content: const Text(
-                            'Все начнется заново.',
-                            style: TextStyle(color: AppTheme.textSecondary),
+                          title: Text(ll.resetDialogTitle,
+                            style: const TextStyle(color: AppTheme.textPrimary)),
+                          content: Text(
+                            ll.resetDialogContent,
+                            style: const TextStyle(color: AppTheme.textSecondary),
                           ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(d, false),
-                              child: const Text('Отмена'),
+                              child: Text(ll.cancel),
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(d, true),
-                              child: const Text(
-                                'Подтвердить',
-                                style: TextStyle(color: AppTheme.error),
+                              child: Text(
+                                ll.confirm,
+                                style: const TextStyle(color: AppTheme.error),
                               ),
                             ),
                           ],
@@ -958,10 +1172,10 @@ class _SettingsTabState extends State<_SettingsTab> {
                 padding: EdgeInsets.zero,
                 child: ListTile(
                   leading: const Text('🤝', style: TextStyle(fontSize: 20)),
-                  title: const Text('Партнёрская программа',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
-                  subtitle: const Text('Зарабатывай на рефералах',
-                    style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                  title: Text(ll.affiliateNavTitle,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                  subtitle: Text(ll.affiliateNavSubtitle,
+                    style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                   trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.textMuted),
                   onTap: () => Navigator.push(
                     ctx,
@@ -969,6 +1183,22 @@ class _SettingsTabState extends State<_SettingsTab> {
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
+            _GlassCard(
+              padding: EdgeInsets.zero,
+              child: ListTile(
+                leading: const Text('💬', style: TextStyle(fontSize: 20)),
+                title: Text(ll.supportNavTitle,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                subtitle: Text(ll.supportNavSubtitle,
+                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.textMuted),
+                onTap: () => Navigator.push(
+                  ctx,
+                  MaterialPageRoute(builder: (_) => const SupportScreen()),
+                ),
+              ),
+            ),
               const SizedBox(height: 20),
             ],
           ),
@@ -1003,11 +1233,12 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+  final l = AppLocalizations.of(context);
     final items = [
-      {'icon': Icons.bolt_rounded, 'label': 'Главная'},
-      {'icon': Icons.language_rounded, 'label': 'Серверы'},
-      {'icon': Icons.diamond_rounded, 'label': 'Премиум'},
-      {'icon': Icons.settings_rounded, 'label': 'Опции'},
+      {'icon': Icons.bolt_rounded,     'label': l.navHome},
+      {'icon': Icons.language_rounded, 'label': l.navServers},
+      {'icon': Icons.diamond_rounded,  'label': l.navPremium},
+      {'icon': Icons.settings_rounded, 'label': l.navOptions},
     ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -1215,7 +1446,7 @@ class _Toggle extends StatelessWidget {
     return Switch(
       value: value,
       onChanged: onChanged,
-      activeThumbColor: AppTheme.primary,
+      activeColor: AppTheme.primary,
     );
   }
 }
@@ -1229,15 +1460,55 @@ class _PaymentSheet extends StatefulWidget {
 
 class _PaymentSheetState extends State<_PaymentSheet> {
   String _selected = 'quarterly';
+  final _promoCtrl = TextEditingController();
+  bool _promoLoading = false;
 
-  final _plans = [
-    {'id': 'monthly',   'label': '1 Месяц',    'price': '5.99',  'badge': null,              'save': null},
-    {'id': 'quarterly', 'label': '3 Месяца',   'price': '14.99', 'badge': '🔥 ЛУЧШАЯ ЦЕНА', 'save': '17%'},
-    {'id': 'yearly',    'label': '12 Месяцев', 'price': '29.99', 'badge': null,              'save': '37%'},
-  ];
+  @override
+  void dispose() {
+    _promoCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _applyPromo(BuildContext ctx) async {
+    final code = _promoCtrl.text.trim();
+    if (code.isEmpty) return;
+    setState(() => _promoLoading = true);
+    try {
+      final repo = ServerRepository();
+      final res = await repo.redeemPromo(code);
+      final months = (res['granted_months'] as num).toInt();
+      if (ctx.mounted) {
+        await ctx.read<AuthProvider>().refreshUser();
+        Navigator.pop(ctx);
+        final l = AppLocalizations.of(ctx);
+        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+          content: Text(l.promoCodeSuccess(months)),
+          backgroundColor: AppTheme.success,
+        ));
+      }
+    } catch (e) {
+      if (ctx.mounted) {
+        final msg = e.toString().contains('detail')
+            ? e.toString().replaceAll(RegExp(r'.*detail.*?: ?'), '')
+            : e.toString();
+        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+          content: Text(msg),
+          backgroundColor: AppTheme.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _promoLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final plans = [
+      {'id': 'monthly',   'label': l.plan1m,  'price': '5.99',  'badge': null,             'save': null},
+      {'id': 'quarterly', 'label': l.plan3m,  'price': '14.99', 'badge': l.badgeBestPrice, 'save': '17%'},
+      {'id': 'yearly',    'label': l.plan12m, 'price': '29.99', 'badge': null,             'save': '37%'},
+    ];
     return Container(
       decoration: const BoxDecoration(
         color: AppTheme.surface,
@@ -1265,15 +1536,15 @@ class _PaymentSheetState extends State<_PaymentSheet> {
               children: [
                 const Text('💎', style: TextStyle(fontSize: 30)),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('SafeNet Premium',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900,
+                      Text(l.premiumTitle,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900,
                           color: AppTheme.textPrimary)),
-                      Text('Безлимит · Все серверы · Авто-подключение',
-                        style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                      Text(l.sheetSubtitle,
+                        style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                     ],
                   ),
                 ),
@@ -1292,7 +1563,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
             ),
             const SizedBox(height: 20),
             // Plans
-            ..._plans.map((p) => Padding(
+            ...plans.map((p) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: GestureDetector(
                 onTap: () => setState(() => _selected = p['id'] as String),
@@ -1334,7 +1605,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                             ],
                           ]),
                           if (p['save'] != null)
-                            Text('Экономия ${p['save']}',
+                            Text(l.savingsLabel(p['save'] as String),
                               style: const TextStyle(fontSize: 10, color: AppTheme.success,
                                 fontWeight: FontWeight.w700)),
                         ],
@@ -1382,18 +1653,63 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                         ? const SizedBox(width: 20, height: 20,
                             child: CircularProgressIndicator(
                               color: Colors.white, strokeWidth: 2))
-                        : const Text('Оплатить в CryptoBot',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900,
+                        : Text(l.payWithCryptobot,
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900,
                               color: Colors.white)),
                   ),
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            // Promo code in sheet
+            Builder(builder: (ctx) => Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _promoCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13,
+                    fontWeight: FontWeight.w700, letterSpacing: 2),
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(ctx).promoCodeHint,
+                    hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                    filled: true,
+                    fillColor: AppTheme.bg,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppTheme.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppTheme.border),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 46,
+                child: ElevatedButton(
+                  onPressed: _promoLoading ? null : () => _applyPromo(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                  ),
+                  child: _promoLoading
+                      ? const SizedBox(width: 16, height: 16,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(AppLocalizations.of(ctx).promoCodeApply,
+                          style: const TextStyle(color: Colors.white,
+                            fontWeight: FontWeight.w800, fontSize: 12)),
+                ),
+              ),
+            ])),
             const SizedBox(height: 12),
             GestureDetector(
               onTap: () => Navigator.pop(context),
-              child: const Text('Продолжить бесплатно →',
-                style: TextStyle(fontSize: 12, color: AppTheme.textMuted,
+              child: Text(l.continueFree,
+                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted,
                   fontWeight: FontWeight.w600)),
             ),
           ],

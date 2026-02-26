@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../domain/models/server.dart';
+import '../l10n/app_localizations.dart';
 
 class ServersScreen extends StatefulWidget {
   final String currentId;
@@ -23,6 +24,7 @@ class _ServersScreenState extends State<ServersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final filtered = VpnServer.defaults
         .where((s) => s.country.toLowerCase().contains(_search.toLowerCase()))
         .toList();
@@ -32,15 +34,15 @@ class _ServersScreenState extends State<ServersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Серверы',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
+          Text(l.serversTitle,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
           const SizedBox(height: 20),
           // Search
           TextField(
             onChanged: (v) => setState(() => _search = v),
             style: const TextStyle(color: AppTheme.textPrimary),
             decoration: InputDecoration(
-              hintText: 'Поиск страны...',
+              hintText: l.searchCountry,
               hintStyle: const TextStyle(color: AppTheme.textMuted),
               filled: true,
               fillColor: AppTheme.surface,
@@ -69,12 +71,12 @@ class _ServersScreenState extends State<ServersScreen> {
                   child: const Icon(Icons.bolt_rounded, color: Colors.white),
                 ),
                 const SizedBox(width: 14),
-                const Expanded(child: Column(
+                Expanded(child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Авто-выбор', style: TextStyle(fontWeight: FontWeight.w700)),
-                    Text('Самый быстрый сервер',
-                      style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    Text(l.autoSelectLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(l.fastestServer,
+                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                   ],
                 )),
                 const Icon(Icons.check, color: AppTheme.primary),
@@ -104,13 +106,13 @@ class _ServersScreenState extends State<ServersScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(children: [
-                  Text(s.flag, style: const TextStyle(fontSize: 28)),
+                  Text(s.audienceFlags, style: const TextStyle(fontSize: 28)),
                   const SizedBox(width: 14),
                   Expanded(child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(s.country, style: const TextStyle(fontWeight: FontWeight.w700)),
-Text(s.cityLabel, style: const TextStyle(fontSize: 11, color: AppTheme.textMuted))
+                      Text(s.audienceName, style: const TextStyle(fontWeight: FontWeight.w700)),
+Text(s.forLabel, style: const TextStyle(fontSize: 11, color: AppTheme.textMuted))
                     ],
                   )),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [

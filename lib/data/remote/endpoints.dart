@@ -13,6 +13,9 @@ class Endpoints {
   static String purchase(String plan) => '/subscriptions/purchase/$plan';
   static const subStatus = '/subscriptions/status';
 
+  // Promo codes
+  static const redeemPromo = '/promocodes/redeem';
+
   // Referrals
   static const referralStats   = '/referrals/stats';
   static const referralRewards = '/referrals/rewards';

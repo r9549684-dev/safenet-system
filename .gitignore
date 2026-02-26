@@ -1,3 +1,6 @@
+# Secrets / deploy credentials
+.env
+
 # Miscellaneous
 *.class
 *.log

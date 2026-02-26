@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import '../l10n/app_localizations.dart';
 import 'home_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -14,23 +15,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   late AnimationController _anim;
   late Animation<double> _fadeAnim;
 
-  final _steps = [
-    {
-      'emoji': '🛡️',
-      'title': 'SafeNet VPN',
-      'sub': 'Обходите цензуру в ОАЭ, Турции и других странах — незаметно.',
-    },
-    {
-      'emoji': '⚡',
-      'title': 'Stealth Технологии',
-      'sub': 'ByeDPI и AmneziaWG автоматически подстраиваются под провайдера.',
-    },
-    {
-      'emoji': '🎁',
-      'title': '3 Дня Бесплатно',
-      'sub': 'Попробуйте премиум функции прямо сейчас. Регистрация не нужна.',
-    },
-  ];
+  List<Map<String, String>> _steps(BuildContext ctx) {
+    final l = AppLocalizations.of(ctx);
+    return [
+      {'emoji': '🛡️', 'title': l.onb1Title, 'sub': l.onb1Sub},
+      {'emoji': '⚡', 'title': l.onb2Title, 'sub': l.onb2Sub},
+      {'emoji': '🎁', 'title': l.onb3Title, 'sub': l.onb3Sub},
+    ];
+  }
 
   @override
   void initState() {
@@ -40,8 +32,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     _anim.forward();
   }
 
-  void _next() {
-    if (_step < _steps.length - 1) {
+  void _next(BuildContext ctx) {
+    if (_step < _steps(ctx).length - 1) {
       _anim.reverse().then((_) {
         setState(() => _step++);
         _anim.forward();
@@ -62,7 +54,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final step = _steps[_step];
+    final l = AppLocalizations.of(context);
+    final steps = _steps(context);
+    final step = steps[_step];
     return Scaffold(
       backgroundColor: AppTheme.bg,
       body: SafeArea(
@@ -101,7 +95,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               // Dots
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_steps.length, (i) => AnimatedContainer(
+              children: List.generate(steps.length, (i) => AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   width: i == _step ? 32 : 8,
@@ -115,8 +109,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _next,
+                  child: ElevatedButton(
+                  onPressed: () => _next(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryDark,
                     foregroundColor: Colors.white,
@@ -127,7 +121,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     elevation: 0,
                   ),
                   child: Text(
-                    _step < _steps.length - 1 ? 'Далее →' : 'Начать',
+                    _step < steps.length - 1 ? l.next : l.start,
                     style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                   ),
                 ),

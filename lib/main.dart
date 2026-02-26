@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/theme.dart';
+import 'l10n/app_localizations.dart';
 import 'providers/auth_provider.dart';
 import 'providers/vpn_provider.dart';
 import 'providers/subscription_provider.dart';
@@ -36,13 +37,14 @@ class SafeNetApp extends StatelessWidget {
         builder: (_, auth, __) => MaterialApp(
           title: 'SafeNet VPN',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.dark,
+          theme: AppTheme.forLocale(Locale(auth.language)),
           locale: Locale(auth.language),
           supportedLocales: const [
             Locale('en'), Locale('ru'), Locale('fa'),
             Locale('tr'), Locale('ar'), Locale('ur'), Locale('id'),
           ],
           localizationsDelegates: const [
+            AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,

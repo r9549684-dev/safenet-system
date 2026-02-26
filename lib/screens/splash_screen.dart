@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../data/local/secure_storage.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import 'onboarding_screen.dart';
 import 'home_screen.dart';
@@ -88,10 +89,10 @@ class _SplashScreenState extends State<SplashScreen> {
             child: const Icon(Icons.shield_rounded, size: 56, color: AppColors.primary),
           ),
           const SizedBox(height: 24),
-          const Text('SafeNet VPN',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text(AppLocalizations.of(context).appName,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 8),
-          Text('Secure. Private. Free.',
+          Text(AppLocalizations.of(context).splashTagline,
             style: TextStyle(color: Colors.white.withValues(alpha: 0.5))),
           const SizedBox(height: 48),
           const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
@@ -117,8 +118,8 @@ class _SplashScreenState extends State<SplashScreen> {
               child: const Icon(Icons.shield_rounded, size: 50, color: AppColors.primary),
             ),
             const SizedBox(height: 16),
-            const Text('SafeNet VPN',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text(AppLocalizations.of(context).appName,
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 40),
             const Text(
               'Выберите язык · زبان را انتخاب کنید · Choose language',

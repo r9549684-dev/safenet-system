@@ -56,6 +56,14 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> refreshUser() async {
+    final user = await _repo.tryAutoLogin();
+    if (user != null) {
+      _user = user;
+      notifyListeners();
+    }
+  }
+
   Future<void> logout() async {
     await _repo.logout();
     _user  = null;

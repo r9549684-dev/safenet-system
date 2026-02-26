@@ -12,6 +12,8 @@ from app.api import (
     vpn_router,
     affiliate_router,
     promocodes_router,
+    support_router,
+    version_router,
 )
 
 setup_logging(settings.DEBUG)
@@ -36,3 +38,5 @@ app.include_router(payments_cryptobot_router)
 app.include_router(vpn_router)
 app.include_router(affiliate_router)
 app.include_router(promocodes_router)
+app.include_router(support_router)
+app.include_router(version_router)

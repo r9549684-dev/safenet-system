@@ -21,4 +21,11 @@ class ServerRepository {
   Future<Map<String, dynamic>> connect(String serverId) async {
     return _api.post<Map<String, dynamic>>(Endpoints.connectServer(serverId));
   }
+
+  Future<Map<String, dynamic>> redeemPromo(String code) async {
+    return _api.post<Map<String, dynamic>>(
+      Endpoints.redeemPromo,
+      data: {'code': code.trim().toUpperCase()},
+    );
+  }
 }

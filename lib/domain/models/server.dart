@@ -35,6 +35,31 @@ class VpnServer {
     'ID': '🇮🇩', 'AE': '🇦🇪', 'VE': '🇻🇪', 'SA': '🇸🇦',
   }[country] ?? '🌍';
 
+  /// Флаги аудитории — кому предназначен профиль
+  String get audienceFlags => const {
+    'TR': '🇮🇷',  // пока работаем на Иран
+    'AE': '🇦🇪',
+    'EG': '🇪🇬',
+    'SA': '🇸🇦',
+    'PK': '🇵🇰',
+    'ID': '🇮🇩',
+    'VE': '🇻🇪',
+  }[country] ?? flag;
+
+  /// Название аудитории (человекочитаемое)
+  String get audienceName => const {
+    'TR': 'Иран',
+    'AE': 'ОАЭ',
+    'EG': 'Египет',
+    'SA': 'Саудовская Аравия',
+    'PK': 'Пакистан',
+    'ID': 'Индонезия',
+    'VE': 'Венесуэла',
+  }[country] ?? country;
+
+  /// Метка «для» — показывает целевую аудиторию, не расположение сервера
+  String get forLabel => 'для $audienceFlags $audienceName';
+
   String get loadLabel {
     if (load < 30) return 'Low';
     if (load < 70) return 'Medium';
