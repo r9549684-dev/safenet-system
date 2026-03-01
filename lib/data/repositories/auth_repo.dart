@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../local/secure_storage.dart';
 import '../remote/api_client.dart';
@@ -8,14 +9,24 @@ class AuthRepository {
   final _api = ApiClient();
 
   Future<String> getOrCreateDeviceId() async {
-    // Возвращаем сохранённый ID если уже есть
-    var id = await SecureStorage.getDeviceId();
-    if (id != null) return id;
+    try {
+      // Возвращаем сохранённый ID если уже есть и не пустой
+      final saved = await SecureStorage.getDeviceId();
+      if (saved != null && saved.isNotEmpty) return saved;
 
-    // При первой установке — генерируем уникальный UUID и сохраняем навсегда
-    id = const Uuid().v4();
-    await SecureStorage.saveDeviceId(id);
-    return id;
+      // При первой установке — генерируем уникальный UUID и сохраняем навсегда
+      final id = const Uuid().v4();
+      try {
+        await SecureStorage.saveDeviceId(id);
+      } on PlatformException {
+        // Keystore недоступен — ID не сохранится между сессиями,
+        // но регистрация в этот раз пройдёт
+      }
+      return id;
+    } on PlatformException {
+      // SecureStorage полностью недоступен — генерируем одноразовый UUID
+      return const Uuid().v4();
+    }
   }
 
   Future<User> register({
