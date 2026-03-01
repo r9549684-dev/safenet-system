@@ -40,12 +40,14 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       await vpn.loadServers();
       if (!mounted) return;
-      final hasFullAccess = (auth.user?.isPremium ?? false) || (auth.user?.isTrialActive ?? false);
+      final hasFullAccess = auth.user?.hasAccess ?? true;
       await vpn.checkAutoConnect(isPremium: hasFullAccess);
       if (mounted) context.read<AffiliateProvider>().loadProfile();
       if (mounted) UpdateChecker.check(context);
       // Тихая пред-регистрация — ускоряет первое подключение (цель — 5 секунд)
-      if (!auth.isAuth) {
+      // ВАЖНО: проверяем только unauthenticated (не initial/loading) чтобы не создавать
+      // дублирующую регистрацию пока tryAutoLogin ещё выполняется.
+      if (auth.state == AuthState.unauthenticated) {
         final country = await SecureStorage.getCountry() ?? 'IR';
         try { await auth.register(country: country); } catch (_) {}
       }
@@ -109,8 +111,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               if (vpn.status == VpnStatus.connected ||
                                   vpn.status == VpnStatus.error) {
                               if (vpn.status == VpnStatus.error) {
-                                final auth = context.read<AuthProvider>();
-                                final isPremium = (auth.user?.isPremium ?? false) || (auth.user?.isTrialActive ?? false);
+                              final auth = context.read<AuthProvider>();
+                                final isPremium = auth.user?.hasAccess ?? true;
                                 vpn.connect(
                                   countryCode: server.country,
                                   mode: _mode,
@@ -124,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               }
                             } else if (vpn.status == VpnStatus.disconnected) {
                               final auth = context.read<AuthProvider>();
-                              final isPremium = (auth.user?.isPremium ?? false) || (auth.user?.isTrialActive ?? false);
+                              final isPremium = auth.user?.hasAccess ?? true;
                               vpn.connect(
                                 countryCode: server.country,
                                 mode: _mode,
