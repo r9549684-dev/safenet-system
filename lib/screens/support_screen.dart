@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/theme.dart';
 import '../l10n/app_localizations.dart';
+import '../providers/auth_provider.dart';
 
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
@@ -9,6 +12,7 @@ class SupportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final deviceId = context.read<AuthProvider>().user?.deviceId ?? '';
     return Scaffold(
       backgroundColor: AppTheme.bg,
       appBar: AppBar(
@@ -33,19 +37,88 @@ class SupportScreen extends StatelessWidget {
           children: [
             Text(l.supportSubtitle,
               style: const TextStyle(fontSize: 13, color: AppTheme.textMuted)),
-            const SizedBox(height: 28),
+            const SizedBox(height: 20),
 
-            // ── Telegram (работает сейчас) ────────────────────────────────
-            _label('LIVE'),
+            // ── UUID-карточка ─────────────────────────────────────────────
+            if (deviceId.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.25)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('ВАШ UUID', style: TextStyle(
+                      fontSize: 9, fontWeight: FontWeight.w700,
+                      color: AppTheme.textMuted, letterSpacing: 3,
+                    )),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                        child: Text(deviceId,
+                          style: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: deviceId));
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                            content: Text('UUID скопирован'),
+                            duration: Duration(seconds: 2),
+                          ));
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.copy_rounded, size: 13, color: AppTheme.primary),
+                            SizedBox(width: 4),
+                            Text('Копировать', style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700,
+                              color: AppTheme.primary,
+                            )),
+                          ]),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Сообщите UUID оператору поддержки — он мгновенно увидит ваш аккаунт',
+                      style: TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            // ── Написать в поддержку ──────────────────────────────────────
+            _label('ПОДДЕРЖКА'),
             const SizedBox(height: 10),
             _SupportCard(
               icon: '✈️',
               title: l.supportTelegramTitle,
               subtitle: l.supportTelegramDesc,
-              onTap: () => launchUrl(
-                Uri.parse('https://t.me/safenetvpn'),
-                mode: LaunchMode.externalApplication,
-              ),
+              onTap: () {
+                final text = deviceId.isNotEmpty
+                    ? Uri.encodeComponent('SafeNet Support\nUUID: $deviceId')
+                    : '';
+                launchUrl(
+                  Uri.parse('https://t.me/safenetvpn${text.isNotEmpty ? "?start=$text" : ""}'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
             ),
             const SizedBox(height: 24),
 

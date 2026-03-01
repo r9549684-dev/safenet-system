@@ -9,6 +9,7 @@ from .affiliate import router as affiliate_router
 from .promocodes import router as promocodes_router
 from .support import router as support_router
 from .version import router as version_router
+from .admin import router as admin_router
 
 __all__ = [
     "health_router",
@@ -22,4 +23,5 @@ __all__ = [
     "promocodes_router",
     "support_router",
     "version_router",
+    "admin_router",
 ]

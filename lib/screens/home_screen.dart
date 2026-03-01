@@ -1055,9 +1055,22 @@ class _SettingsTabState extends State<_SettingsTab> {
               _GlassCard(
                 padding: EdgeInsets.zero,
                 child: Column(children: [
-                  _SettingsRow(
-                    icon: '🛡️', title: ll.deviceIdLabel, subtitle: shortId,
-                    trailing: _badge(badgeLabel, AppTheme.warning),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: deviceId));
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text('UUID скопирован'),
+                        duration: Duration(seconds: 2),
+                      ));
+                    },
+                    child: _SettingsRow(
+                      icon: '🛡️', title: ll.deviceIdLabel, subtitle: shortId,
+                      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                        _badge(badgeLabel, AppTheme.warning),
+                        SizedBox(width: 6),
+                        Icon(Icons.copy_rounded, size: 14, color: AppTheme.textMuted),
+                      ]),
+                    ),
                   ),
                   const Divider(color: AppTheme.border, height: 1),
                   _SettingsRow(
