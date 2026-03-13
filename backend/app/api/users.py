@@ -118,3 +118,35 @@ async def link_telegram(
         "country": user.country,
         "status": "premium" if user.is_premium else ("trial_active" if user.is_trial else "expired"),
     }
+
+
+# ── POST /users/unlink-telegram (admin) ───────────────────────────────────────────
+
+class UnlinkTelegramRequest(BaseModel):
+    telegram_id: int
+
+
+@router.post("/unlink-telegram", dependencies=[Depends(_require_admin)])
+async def unlink_telegram(
+    body: UnlinkTelegramRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Вызывается @SafeBypass_bot при команде /unlink.
+    Очищает telegram_id у пользователя — связь между VPN-аккаунтом
+    и Telegram полностью удаляется.
+    """
+    q = await session.execute(select(User).where(User.telegram_id == body.telegram_id))
+    user = q.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="No user linked to this Telegram ID")
+
+    user.telegram_id = None
+    await session.commit()
+
+    return {
+        "ok": True,
+        "message": "Telegram account unlinked successfully",
+        "device_id": user.device_id,
+    }

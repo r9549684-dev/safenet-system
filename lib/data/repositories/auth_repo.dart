@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../local/secure_storage.dart';
@@ -8,23 +9,34 @@ import '../../domain/models/user.dart';
 class AuthRepository {
   final _api = ApiClient();
 
+  // MethodChannel уже объявлен в MainActivity.kt — переиспользуем
+  static const _channel = MethodChannel('com.safenet.vpn/methods');
+
   Future<String> getOrCreateDeviceId() async {
     try {
-      // Возвращаем сохранённый ID если уже есть и не пустой
+      // 1. Возвращаем сохранённый ID (backward-compatible для уже установленных)
       final saved = await SecureStorage.getDeviceId();
       if (saved != null && saved.isNotEmpty) return saved;
 
-      // При первой установке — генерируем уникальный UUID и сохраняем навсегда
+      // 2. Android: берём ANDROID_ID — аппаратный ID, переживает переустановку
+      //    (меняется только при factory reset или смене пользователя)
+      if (Platform.isAndroid) {
+        try {
+          final androidId = await _channel.invokeMethod<String>('getAndroidId');
+          if (androidId != null && androidId.isNotEmpty && androidId != '0000000000000000') {
+            try { await SecureStorage.saveDeviceId(androidId); } on PlatformException { /* ignore */ }
+            return androidId;
+          }
+        } on PlatformException { /* fall through */ }
+      }
+
+      // 3. Fallback (iOS / ANDROID_ID недоступен): случайный UUID
       final id = const Uuid().v4();
       try {
         await SecureStorage.saveDeviceId(id);
-      } on PlatformException {
-        // Keystore недоступен — ID не сохранится между сессиями,
-        // но регистрация в этот раз пройдёт
-      }
+      } on PlatformException { /* Keystore недоступен — OK */ }
       return id;
     } on PlatformException {
-      // SecureStorage полностью недоступен — генерируем одноразовый UUID
       return const Uuid().v4();
     }
   }

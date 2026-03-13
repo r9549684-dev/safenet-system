@@ -141,7 +141,7 @@ DNS = {WG_DNS}
 PublicKey = {server_pubkey}
 Endpoint = {endpoint}
 AllowedIPs = 0.0.0.0/0, ::/0
-PersistentKeepalive = 25
+PersistentKeepalive = 10
 """
         return config.strip()
 

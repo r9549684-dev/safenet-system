@@ -11,6 +11,7 @@ from .support import router as support_router
 from .version import router as version_router
 from .admin import router as admin_router
 from .payments_admin import router as payments_admin_router
+from .subscriptions import router as subscriptions_router
 
 __all__ = [
     "health_router",
@@ -26,4 +27,5 @@ __all__ = [
     "version_router",
     "admin_router",
     "payments_admin_router",
+    "subscriptions_router",
 ]

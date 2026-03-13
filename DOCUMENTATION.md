@@ -619,3 +619,124 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 - **API (prod):** https://api.loveaibot.net
 - **API (direct):** http://89.208.107.67:8500
 - **Разработчик:** Warp Agent
+
+---
+
+## 📋 Changelog — сессия 13.03.2026
+
+### ✅ Fix: device_id сбрасывался при переустановке приложения
+
+**Проблема:** При удалении и повторной установке APK генерировался новый UUID → новый пользователь в БД → потеря подписки/промокода.
+
+**Причина:** `FlutterSecureStorage` (EncryptedSharedPreferences) хранит данные в приватной директории приложения. Android **удаляет** их вместе с приложением при uninstall.
+
+**Исправление:**
+- `android/app/src/main/kotlin/com/safenet/vpn/MainActivity.kt` — добавлен обработчик `getAndroidId` в MethodChannel `com.safenet.vpn/methods`. Возвращает `Settings.Secure.ANDROID_ID` — аппаратный ID, который **не меняется при переустановке** (только при factory reset или смене пользователя Android).
+- `lib/data/repositories/auth_repo.dart` — `getOrCreateDeviceId()` теперь:
+  1. Проверяет сохранённый ID в SecureStorage (backward-compatible для существующих пользователей)
+  2. Если нет → запрашивает `ANDROID_ID` через MethodChannel
+  3. Fallback на random UUID (только если ANDROID_ID недоступен)
+
+**Результат:** Переустановка приложения больше не создаёт новый аккаунт — пользователь получает тот же `device_id` и сохраняет подписку.
+
+---
+
+## 📋 Changelog — сессия 06.03.2026
+
+### ✅ Fix: `subscriptions_router` не был зарегистрирован
+
+**Проблема:** `POST /subscriptions/*` возвращал 404 для всех маршрутов.
+**Причина:** `subscriptions_router` не был подключён в `backend/app/api/__init__.py` и `main.py`.
+**Исправление:** Добавлен `include_router(subscriptions_router)` в оба файла.
+**Деплой:** `docker cp` → `docker compose restart api`.
+
+---
+
+### ✅ Fix: CryptoBot `paid_btn_url` — неверное имя бота
+
+**Файл:** `backend/app/services/cryptobot.py`
+**Было:** `paid_btn_url` указывал на `LoveAIbot`
+**Стало:** Исправлено на `SafeBypass_bot`
+
+---
+
+### ✅ USDT TRC20/TON — переименование метки
+
+**Было:** `USDT / TON`
+**Стало:** `USDT TRC20/TON`
+
+Изменено в 7 файлах:
+- `lib/screens/home_screen.dart` (строка 863)
+- `lib/l10n/app_en.arb`, `app_ru.arb`, `app_fa.arb`
+- `lib/l10n/app_localizations_en.dart`, `_ru.dart`, `_fa.dart`
+
+**Релиз:** APK v1.2.0 загружен на GitHub Releases.
+**Ссылка:** https://github.com/r9549684-dev/safenet-vpn/releases/download/v1.2.0/SafeNet-v1.2.0.apk
+
+**Актуальный релиз:** APK v1.3.0
+**Ссылка для скачивания (GitHub, приватный):** https://github.com/r9549684-dev/safenet-vpn/releases/download/v1.3.0/SafeNet-v1.3.0.apk
+**Актуальная публичная ссылка:** https://api.loveaibot.net/download/app
+
+---
+
+### ✅ Fix: VoIP дропы на WireGuard (Premium)
+
+**Проблема:** Регулярные обрывы VoIP-звонков каждые ~2–3 минуты на премиум-аккаунтах.
+
+**Причина 1 — частый рехендшейк WireGuard:**
+`PersistentKeepalive` был 25 сек → слишком долго для NAT-таймаутов у сотовых операторов.
+
+**Исправление 1:**
+- Файл: `backend/app/services/wireguard.py`, строка 144
+- Было: `PersistentKeepalive = 25`
+- Стало: `PersistentKeepalive = 10`
+
+**Причина 2 — `tc class del/add` при реконнекте разрывает пакеты:**
+При переподключении активного пира `peer-limit.sh` пересоздавал TC-класс, вызывая кратковременный packet loss.
+
+**Исправление 2:**
+- Файл: `backend/app/api/vpn.py`
+- Добавлен флаг `peer_was_active` (проверяет `is_active` до вызова connect)
+- Если пир уже был активен — `apply_speed_limit` пропускается (TC не трогается)
+
+**Деплой:** оба файла загружены через `docker cp`, `docker compose restart api`.
+
+---
+
+### ✅ Новый эндпоинт: `POST /users/unlink-telegram`
+
+**Файл:** `backend/app/api/users.py` (строки 123–152)
+**Аутентификация:** `X-Admin-Secret: safenet_admin_2026`
+
+**Тело запроса:**
+```json
+{"telegram_id": 123456789}
+```
+
+**Ответ (200 OK):**
+```json
+{"ok": true, "message": "Telegram unlinked", "device_id": "<uuid>"}
+```
+
+**Ответ (404):**
+```json
+{"detail": "User not found"}
+```
+
+**Логика:** Находит пользователя по `telegram_id`, устанавливает `telegram_id = None`, сохраняет в БД.
+
+**Назначение:** Позволяет администратору (или боту Felix) отвязать Telegram-аккаунт от устройства — например, если пользователь сменил аккаунт или требует удаления данных (GDPR/Privacy).
+
+---
+
+### 📋 Рекомендации для бота по Privacy (GDPR)
+
+Для Felix (@SafeBypass_bot) рекомендуется реализовать:
+
+1. **Уведомление перед привязкой:** при команде `/link` или нажатии «Привязать» показывать текст:
+   > «Привязывая Telegram, вы разрешаете SafeNet хранить ваш Telegram ID для управления подпиской. Вы можете отвязать его в любой момент командой /unlink.»
+   С кнопками: **✅ Принять** | **❌ Отмена**
+
+2. **Команда `/unlink`:** бот вызывает `POST /users/unlink-telegram` с `telegram_id` пользователя, подтверждает отвязку.
+
+3. **Хранение только необходимых данных:** в БД хранится только `telegram_id` (integer), имя/username не сохраняются.

@@ -118,6 +118,8 @@ async def connect_vpn(
     )
     connection = conn_result.scalar_one_or_none()
 
+    peer_was_active = False  # флаг: peer уже был активен до этого вызова
+
     if connection is None:
         # Первое подключение: создаём запись с ключами и IP
         private_key, public_key = WireGuardService.generate_keypair()
@@ -134,6 +136,7 @@ async def connect_vpn(
         session.add(connection)
     else:
         # Переиспользуем существующую запись (IP и ключи не меняем, просто реактивируем)
+        peer_was_active = connection.is_active  # запоминаем статус ДО реактивации
         connection.is_active = True
 
     # 4. Обновляем время последнего использования (это старт сессии для watchdog'а)
@@ -153,12 +156,16 @@ async def connect_vpn(
         ip=connection.allocated_ip,
     )
 
-    # 5.1 Лимит скорости: premium=10mbit, trial/limited=3mbit
+    # 5.1 Лимит скорости: только при НОВОМ подключении или реактивации после watchdog-кика.
+    # Если peer уже был активен — пропускаем, чтобы не прерывать трафик
+    # (tc class del/add вызывает кратковременный packet loss, критичный для VoIP).
     _user_is_premium = is_user_premium(user)
-    tier = "premium" if _user_is_premium else "trial"
-    log.info("[SPEED] user=%s tier=%s peer_ip=%s", user.device_id, tier, connection.allocated_ip)
-    await WireGuardService.apply_speed_limit(peer_ip=connection.allocated_ip, tier=tier)
-    log.info("[SPEED] apply_speed_limit called for %s tier=%s", connection.allocated_ip, tier)
+    if not peer_was_active:
+        tier = "premium" if _user_is_premium else "trial"
+        log.info("[SPEED] user=%s tier=%s peer_ip=%s (new/reactivated)", user.device_id, tier, connection.allocated_ip)
+        await WireGuardService.apply_speed_limit(peer_ip=connection.allocated_ip, tier=tier)
+    else:
+        log.info("[SPEED] skip set-speed for %s — peer already active (VoIP safe)", connection.allocated_ip)
 
     # 6. Формируем WG-конфиг
     wg_config = WireGuardService.generate_wg_config(

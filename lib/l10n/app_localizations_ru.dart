@@ -214,7 +214,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get safePayment => 'БЕЗОПАСНАЯ ОПЛАТА • АКТИВАЦИЯ МГНОВЕННО';
 
   @override
-  String get paymentDesc => 'Оплата в USDT / TON через CryptoBot';
+  String get paymentDesc => 'Оплата в USDT TRC20/TON через CryptoBot';
 
   @override
   String get sheetSubtitle => 'Безлимит · Все серверы · Авто-подключение';

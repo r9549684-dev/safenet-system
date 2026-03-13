@@ -214,7 +214,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get safePayment => 'پرداخت امن • فعال‌سازی فوری';
 
   @override
-  String get paymentDesc => 'پرداخت با USDT / TON از طریق کریپتوبات';
+  String get paymentDesc => 'پرداخت با USDT TRC20/TON از طریق کریپتوبات';
 
   @override
   String get sheetSubtitle => 'نامحدود · همه سرورها · اتصال خودکار';

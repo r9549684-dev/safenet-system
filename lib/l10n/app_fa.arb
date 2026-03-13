@@ -72,7 +72,7 @@
   "savingsLabel": "صرفه‌جویی {percent}",
   "payWithCryptobot": "پرداخت با کریپتوبات",
   "safePayment": "پرداخت امن • فعال‌سازی فوری",
-  "paymentDesc": "پرداخت با USDT / TON از طریق کریپتوبات",
+  "paymentDesc": "پرداخت با USDT TRC20/TON از طریق کریپتوبات",
   "sheetSubtitle": "نامحدود · همه سرورها · اتصال خودکار",
   "continueFree": "ادامه رایگان →",
 

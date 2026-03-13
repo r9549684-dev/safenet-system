@@ -87,7 +87,7 @@
   },
   "payWithCryptobot": "Pay with CryptoBot",
   "safePayment": "SECURE PAYMENT • INSTANT ACTIVATION",
-  "paymentDesc": "Payment in USDT / TON via CryptoBot",
+  "paymentDesc": "Payment in USDT TRC20/TON via CryptoBot",
   "sheetSubtitle": "Unlimited · All servers · Auto-connect",
   "continueFree": "Continue for free →",
 

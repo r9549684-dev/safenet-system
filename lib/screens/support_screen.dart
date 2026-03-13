@@ -115,7 +115,7 @@ class SupportScreen extends StatelessWidget {
                     ? Uri.encodeComponent('SafeNet Support\nUUID: $deviceId')
                     : '';
                 launchUrl(
-                  Uri.parse('https://t.me/safenetvpn${text.isNotEmpty ? "?start=$text" : ""}'),
+                  Uri.parse('https://t.me/safevpn_middleeast${text.isNotEmpty ? "?start=$text" : ""}'),
                   mode: LaunchMode.externalApplication,
                 );
               },

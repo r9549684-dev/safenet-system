@@ -2,6 +2,8 @@ import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 from app.config import settings
 from app.logging_conf import setup_logging
 from app.services.session_watchdog import run_session_watchdog
@@ -19,6 +21,7 @@ from app.api import (
     version_router,
     admin_router,
     payments_admin_router,
+    subscriptions_router,
 )
 
 setup_logging(settings.DEBUG)
@@ -47,6 +50,11 @@ if settings.cors_list():
         allow_headers=["*"],
     )
 
+# Static files (APK downloads)
+_static_dir = "/app/static"
+os.makedirs(_static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=_static_dir), name="static")
+
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(users_router)
@@ -60,3 +68,4 @@ app.include_router(support_router)
 app.include_router(version_router)
 app.include_router(admin_router)
 app.include_router(payments_admin_router)
+app.include_router(subscriptions_router)

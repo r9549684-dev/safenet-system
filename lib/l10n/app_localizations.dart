@@ -490,7 +490,7 @@ abstract class AppLocalizations {
   /// No description provided for @paymentDesc.
   ///
   /// In en, this message translates to:
-  /// **'Payment in USDT / TON via CryptoBot'**
+  /// **'Payment in USDT TRC20/TON via CryptoBot'**
   String get paymentDesc;
 
   /// No description provided for @sheetSubtitle.

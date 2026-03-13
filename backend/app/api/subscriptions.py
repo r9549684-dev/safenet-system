@@ -17,7 +17,6 @@ from app.database import get_session
 from app.models.invoice import Invoice
 from app.models.user import User
 from app.services.cryptobot import cryptobot
-from app.services.entitlements import is_user_premium
 from app.api.users import get_current_user
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])

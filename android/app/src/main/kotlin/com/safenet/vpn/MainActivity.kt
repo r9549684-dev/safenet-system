@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.net.VpnService
 import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
@@ -144,8 +145,12 @@ class MainActivity : FlutterActivity() {
                     }
 
                     "stop" -> {
-                        StealthVPNService.stop(this)
-                        result.success(mapOf("status" to "disconnected"))
+                        CoroutineScope(Dispatchers.IO).launch {
+                            StealthVPNService.stop(applicationContext)
+                            withContext(Dispatchers.Main) {
+                                result.success(mapOf("status" to "disconnected"))
+                            }
+                        }
                     }
 
                     "getStatus" -> {
@@ -159,13 +164,25 @@ class MainActivity : FlutterActivity() {
                         ))
                     }
 
+                    "getAndroidId" -> {
+                        try {
+                            val androidId = Settings.Secure.getString(
+                                contentResolver,
+                                Settings.Secure.ANDROID_ID
+                            ) ?: ""
+                            result.success(androidId)
+                        } catch (e: Exception) {
+                            result.error("ANDROID_ID_ERROR", e.message, null)
+                        }
+                    }
+
                     else -> result.notImplemented()
                 }
             }
     }
 
     /**
-     * Проверяем разрешение VPN. Если уже выдано — подключаем сразу.
+     * Проверяем разрешение VPN.
      * Если нет — показываем системный диалог, ждём onActivityResult.
      */
     private fun startVpnWithPermission(

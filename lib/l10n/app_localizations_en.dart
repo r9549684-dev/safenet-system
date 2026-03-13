@@ -214,7 +214,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get safePayment => 'SECURE PAYMENT • INSTANT ACTIVATION';
 
   @override
-  String get paymentDesc => 'Payment in USDT / TON via CryptoBot';
+  String get paymentDesc => 'Payment in USDT TRC20/TON via CryptoBot';
 
   @override
   String get sheetSubtitle => 'Unlimited · All servers · Auto-connect';

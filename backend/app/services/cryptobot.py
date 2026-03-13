@@ -22,7 +22,7 @@ class CryptoBotService:
                     "payload": payload,
                     "description": description,
                     "paid_btn_name": "openBot",
-                    "paid_btn_url": "https://t.me/LoveAIbot",
+                    "paid_btn_url": "https://t.me/SafeBypass_bot",
                 },
             )
             return r.json()

@@ -34,10 +34,10 @@ class AmneziaWGService(private val context: Context) {
         }
     }
 
-    fun disconnect() {
+    suspend fun disconnect() {
         val tunnel = activeTunnel ?: return
         activeTunnel = null
-        CoroutineScope(Dispatchers.IO).launch {
+        withContext(Dispatchers.IO) {
             try {
                 backend.setState(tunnel, Tunnel.State.DOWN, null)
                 Log.i(TAG, "AmneziaWG tunnel DOWN")

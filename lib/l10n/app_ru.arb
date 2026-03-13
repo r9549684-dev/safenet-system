@@ -72,7 +72,7 @@
   "savingsLabel": "Экономия {percent}",
   "payWithCryptobot": "Оплатить в CryptoBot",
   "safePayment": "БЕЗОПАСНАЯ ОПЛАТА • АКТИВАЦИЯ МГНОВЕННО",
-  "paymentDesc": "Оплата в USDT / TON через CryptoBot",
+  "paymentDesc": "Оплата в USDT TRC20/TON через CryptoBot",
   "sheetSubtitle": "Безлимит · Все серверы · Авто-подключение",
   "continueFree": "Продолжить бесплатно →",
 

@@ -860,7 +860,7 @@ class _PremiumTabState extends State<_PremiumTab> {
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                       Text('\$${p['price']}',
                         style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-                      const Text('USDT / TON',
+                      const Text('USDT TRC20/TON',
                         style: TextStyle(fontSize: 9, color: AppTheme.textMuted,
                           fontWeight: FontWeight.w700, letterSpacing: 2)),
                     ]),

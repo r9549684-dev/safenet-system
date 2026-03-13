@@ -79,8 +79,8 @@ object StealthVPNService {
         }
     }
 
-    fun stop(context: Context) {
-        amneziaService?.disconnect()
+    suspend fun stop(context: Context) {
+        amneziaService?.disconnect()   // suspend — ждём полного DOWN перед освобождением
         amneziaService = null
 
         val intent = Intent(context, ByeDPIService::class.java)
