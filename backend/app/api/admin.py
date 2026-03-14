@@ -19,6 +19,7 @@ from app.config import settings
 from app.database import get_session
 from app.models.connection import UserConnection
 from app.models.invoice import Invoice
+from app.models.promocode import PromoCodeRedemption
 from app.models.user import User
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -46,7 +47,7 @@ def _status(user: User) -> str:
         return "trial_active"
     return "expired"
 
-def _user_card(user: User) -> dict:
+def _user_card(user: User, premium_source: Optional[str] = None) -> dict:
     """Базовая карточка пользователя."""
     st = _status(user)
     days_left: Optional[int] = None
@@ -60,6 +61,7 @@ def _user_card(user: User) -> dict:
         "country":      user.country,
         "status":       st,
         "is_premium":   user.is_premium,
+        "premium_source": premium_source,  # "paid" | "promo" | None
         "premium_until": user.premium_until.isoformat() if user.premium_until else None,
         "days_left":    days_left,
         "trial_ends_at": user.trial_ends_at.isoformat() if user.trial_ends_at else None,
@@ -179,12 +181,35 @@ async def list_users(
     q = q.order_by(User.created_at.desc()).offset((page - 1) * per_page).limit(per_page)
     users = (await session.execute(q)).scalars().all()
 
+    # Определяем источник premium для каждого пользователя
+    user_ids = [u.id for u in users if u.is_premium]
+    promo_user_ids: set = set()
+    paid_user_ids: set = set()
+    if user_ids:
+        promo_res = await session.execute(
+            select(PromoCodeRedemption.user_id).where(PromoCodeRedemption.user_id.in_(user_ids))
+        )
+        promo_user_ids = {r for (r,) in promo_res.all()}
+        paid_res = await session.execute(
+            select(Invoice.user_id).where(Invoice.user_id.in_(user_ids), Invoice.status == "paid")
+        )
+        paid_user_ids = {r for (r,) in paid_res.all()}
+
+    def _source(u: User) -> Optional[str]:
+        if not u.is_premium:
+            return None
+        if u.id in paid_user_ids:
+            return "paid"
+        if u.id in promo_user_ids:
+            return "promo"
+        return "promo"  # premium без инвойса = промокод
+
     return {
         "total":    total,
         "page":     page,
         "per_page": per_page,
         "pages":    max(1, (total + per_page - 1) // per_page),
-        "users":    [_user_card(u) for u in users],
+        "users":    [_user_card(u, _source(u)) for u in users],
     }
 
 
@@ -234,6 +259,19 @@ async def get_stats(
     premium      = sum(1 for u in all_users if u.is_premium)
     expired      = sum(1 for u in all_users if not u.is_premium and (not u.trial_ends_at or u.trial_ends_at <= now))
 
+    # Premium по источнику: paid vs promo
+    premium_user_ids = [u.id for u in all_users if u.is_premium]
+    paid_user_id_set: set = set()
+    if premium_user_ids:
+        paid_res = await session.execute(
+            select(Invoice.user_id).where(
+                Invoice.user_id.in_(premium_user_ids), Invoice.status == "paid"
+            )
+        )
+        paid_user_id_set = {r for (r,) in paid_res.all()}
+    premium_paid  = sum(1 for u in all_users if u.is_premium and u.id in paid_user_id_set)
+    premium_promo = premium - premium_paid
+
     # По странам
     countries: dict = {}
     for u in all_users:
@@ -243,20 +281,30 @@ async def get_stats(
         countries[c]["total"] += 1
         countries[c][_status(u)] += 1
 
-    # Выручка по оплаченным инвойсам
-    revenue_result = await session.execute(
-        select(func.sum(Invoice.amount)).where(Invoice.status == "paid")
-    )
-    total_revenue = float(revenue_result.scalar_one() or 0)
-
-    # Инвойсы за последние 30 дней
-    from datetime import timedelta
-    month_ago = now - timedelta(days=30)
-    monthly_result = await session.execute(
-        select(func.sum(Invoice.amount))
-        .where(Invoice.status == "paid", Invoice.paid_at >= month_ago)
-    )
-    monthly_revenue = float(monthly_result.scalar_one() or 0)
+    # Revenue: реальные данные из CryptoBot API (не из локальной БД)
+    # Обновлено 2026-03-14: безопасней — Felix/SEIFY/бот читают из БД, а stats берёт из кошелька
+    import httpx
+    cryptobot_balance: dict = {}
+    cryptobot_paid_total = 0.0
+    cryptobot_paid_count = 0
+    try:
+        async with httpx.AsyncClient(timeout=10) as http:
+            hdrs = {"Crypto-Pay-Api-Token": settings.CRYPTOBOT_TOKEN}
+            # Баланс кошелька
+            bal = (await http.get("https://pay.crypt.bot/api/getBalance", headers=hdrs)).json()
+            if bal.get("ok"):
+                for item in bal["result"]:
+                    amt = float(item.get("available", 0))
+                    if amt > 0:
+                        cryptobot_balance[item["currency_code"]] = amt
+            # Оплаченные инвойсы
+            inv = (await http.get("https://pay.crypt.bot/api/getInvoices?status=paid", headers=hdrs)).json()
+            if inv.get("ok"):
+                for it in inv["result"].get("items", []):
+                    cryptobot_paid_total += float(it.get("amount", 0))
+                    cryptobot_paid_count += 1
+    except Exception:
+        pass
 
     return {
         "generated_at": now.isoformat(),
@@ -264,11 +312,14 @@ async def get_stats(
             "total":        total,
             "trial_active": trial_active,
             "premium":      premium,
+            "premium_paid":  premium_paid,
+            "premium_promo": premium_promo,
             "expired":      expired,
         },
         "by_country": dict(sorted(countries.items(), key=lambda x: -x[1]["total"])),
         "revenue": {
-            "total_usd":   total_revenue,
-            "monthly_usd": monthly_revenue,
+            "wallet_balance":  cryptobot_balance if cryptobot_balance else {"USDT": 0, "TON": 0},
+            "total_received":  cryptobot_paid_total,
+            "paid_invoices":   cryptobot_paid_count,
         },
     }

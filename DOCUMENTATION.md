@@ -230,7 +230,7 @@ C:\safenet_vpn\
 **Сценарий:** Flutter-кнопка "🔗 Привязать Telegram" → `POST /users/telegram-link-token` → открывает `https://t.me/SafeBypass_bot?start={token}` → бот вызывает `POST /users/link-telegram` → аккаунты связаны.
 
 ### Admin API *(добавлено 05.03.2026)* — X-Admin-Secret: safenet_admin_2026
-- `GET /admin/stats` — дашборд: total/trial_active/premium/expired по странам + revenue
+- `GET /admin/stats` — дашборд: total/trial_active/premium/expired по странам + revenue (из CryptoBot API, не из БД)
 - `GET /admin/users?status=trial_active|premium|expired&country=AE&page=1` — список с пагинацией
 - `GET /admin/users/lookup?device_id=<UUID>` — полная карточка: статус, days_left, последние 10 инвойсов, последние 5 подключений
 - `GET /admin/users/by-telegram?tg_id=<ID>` *(добавлено 05.03.2026)* — карточка пользователя по telegram_id
@@ -241,6 +241,12 @@ C:\safenet_vpn\
   - Ответ: `{invoice_id, pay_url, amount_usd, amount_local, currency, expires_at}`
 
 **Назначение:** бот `@SafeBypass_bot` использует эти эндпоинты для создания инвойса без JWT.
+
+### Revenue в /admin/stats *(обновлено 14.03.2026)*
+Раздел `revenue` теперь берётся **напрямую из CryptoBot API** (не из локальной БД), чтобы Felix/SEIFY/бот, читающие из БД, не влияли на финансовые показатели:
+- `wallet_balance` — текущий баланс кошелька по валютам (`getBalance`)
+- `total_received` — сумма всех реально оплаченных инвойсов (`getInvoices?status=paid`), даже если средства уже сняты
+- `paid_invoices` — количество реально оплаченных инвойсов
 
 ---
 
@@ -673,9 +679,10 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 **Релиз:** APK v1.2.0 загружен на GitHub Releases.
 **Ссылка:** https://github.com/r9549684-dev/safenet-vpn/releases/download/v1.2.0/SafeNet-v1.2.0.apk
 
-**Актуальный релиз:** APK v1.3.0
-**Ссылка для скачивания (GitHub, приватный):** https://github.com/r9549684-dev/safenet-vpn/releases/download/v1.3.0/SafeNet-v1.3.0.apk
+**Актуальный релиз:** APK v1.3.1
+**Ссылка для скачивания (GitHub, приватный):** https://github.com/r9549684-dev/safenet-vpn/releases/download/v1.3.1/SafeNet-v1.3.1.apk
 **Актуальная публичная ссылка:** https://api.loveaibot.net/download/app
+**Версия на сервере (`GET /app/version`):** `{"version":"1.3.1","version_code":4}`
 
 ---
 
