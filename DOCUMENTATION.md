@@ -498,22 +498,18 @@ wg show wg0                         # WireGuard пиры
 
 ---
 
-## 🤖 Техподдержка (добавлено 25.02.2026)
+## 🤖 Техподдержка (обновлено 14.03.2026)
 
 ### Экран `SupportScreen` (`lib/screens/support_screen.dart`)
 
 Открывается из вкладки **Настройки** — карточка `💬 Техподдержка / FAQ · AI-агент`.
 
-**Секция LIVE (работает сейчас):**
-- `✈️ Написать в поддержку` — кликабельно, открывает `https://t.me/safenetvpn` через `url_launcher`
-
-**Секция СКОРО (бейдж "СКОРО", неактивные карточки):**
-- `❓ FAQ` — База знаний (не реализовано)
-- `🤖 AI-агент поддержки` — Умный помощник (не реализовано во Flutter)
-
-> Бэкенд для AI-чата (сессии, сообщения) **готов и задеплоен**. Flutter-UI чата ещё не написан — экран показывает «скоро».
-> Когда будет готов Cloudflare Tunnel агента — URL прописать в `lib/data/remote/endpoints.dart`.
-
+**Карточки:**
+- `✈️ Написать в поддержку через Telegram` — открывает `https://t.me/SafeBypass_bot`
+
+- `❓ FAQ` — встроенная база знаний (15+ Q&A, ru/en/fa), `FaqScreen`
+- `🤖 AI-агент SEIFY` — **встроенный AI-чат** прямо в приложении (`AiChatScreen`)
+
 ### Support API — Архитектура
 
 AI-агент работает на Android-телефоне (Termux + Python + GLM-5 API). Flutter обращается к агенту напрямую через Cloudflare Tunnel. Агент использует **JWT пользователя** для всех вызовов — отдельный токен не нужен.
@@ -557,7 +553,8 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 |---|---|---|---|
 | `GET` | `/support/sessions/active?lang=ru` | Flutter | Активная сессия или авто-создание |
 | `POST` | `/support/sessions` | Flutter | Явное создание сессии |
-- `POST` | `/support/messages` | Flutter (JWT) | Сохранить сообщение пользователя (role=user) |
+| `POST` | `/support/ask` | Flutter (JWT) | **AI-ответ** — FAQ search, сохраняет оба сообщения |
+| `POST` | `/support/messages` | Flutter (JWT) | Сохранить сообщение пользователя (role=user) |
 | `POST` | `/support/agent-message` | Felix (X-Agent-Secret) | Ответ агента (role=agent автоматически) |
 | `GET` | `/support/history?session_id=&limit=50` | Flutter | История сообщений сессии |
 | `POST` | `/support/sessions/{id}/resolve` | Агент | Закрыть сессию |
@@ -567,14 +564,11 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 - Пользователи (Flutter): `Authorization: Bearer <JWT>`
 - Felix-бот: `X-Agent-Secret: safenet_agent_felix_2026`
 
-**Felix (@SafeBypass_bot — SEIFY AI + RAG):**
+**POST /support/ask — формат:**
+```json
+{"message": "Как оплатить?", "lang": "ru"}
+// → {"answer": "...", "source": "faq", "topic": "payment"}
 ```
-Пользователь → POST /support/messages (JWT)
-    → backend форвардит в Telegram Bot API (chat_id оператора) ← ожидается от Felix
-    → Felix (RAG-ответ) → POST /support/agent-message (X-Agent-Secret)
-    → Flutter polling GET /support/history каждые 3 сек
-```
-⏳ Ожидается от Felix: `chat_id` служебного Telegram-чата операторов.
 
 ---
 
@@ -641,8 +635,9 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 | Синтаксис бота исправлен (стр. 281) | ✅ исправлено |
 | UAE-экзамен: реальный SEIFY Agent | ✅ готово |
 | Локальный тест бота | ⏳ следующий шаг |
-| Деплой на сервер | ⏳ после теста |
-| Flutter UI чата | ⏳ в разработке |
+| Деплой бота на сервер | ⏳ после теста |
+| Flutter UI чата (AiChatScreen) | ✅ готово (14.03.2026) |
+|| /support/ask + ai_support.py | ✅ задеплоено (14.03.2026) |
 
 ---
 
