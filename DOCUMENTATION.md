@@ -229,13 +229,13 @@ C:\safenet_vpn\
 
 **Сценарий:** Flutter-кнопка "🔗 Привязать Telegram" → `POST /users/telegram-link-token` → открывает `https://t.me/SafeBypass_bot?start={token}` → бот вызывает `POST /users/link-telegram` → аккаунты связаны.
 
-### Admin API *(добавлено 05.03.2026)* — X-Admin-Secret: safenet_admin_2026
+### Admin API *(добавлено 05.03.2026)* — X-Admin-Secret: <ADMIN_SECRET>
 - `GET /admin/stats` — дашборд: total/trial_active/premium/expired по странам + revenue (из CryptoBot API, не из БД)
 - `GET /admin/users?status=trial_active|premium|expired&country=AE&page=1` — список с пагинацией
 - `GET /admin/users/lookup?device_id=<UUID>` — полная карточка: статус, days_left, последние 10 инвойсов, последние 5 подключений
 - `GET /admin/users/by-telegram?tg_id=<ID>` *(добавлено 05.03.2026)* — карточка пользователя по telegram_id
 
-### Payments Admin API *(добавлено 05.03.2026)* — X-Admin-Secret: safenet_admin_2026
+### Payments Admin API *(добавлено 05.03.2026)* — X-Admin-Secret: <ADMIN_SECRET>
 - `POST /payments/admin/create-invoice` — создать CryptoBot-инвойс от имени бота
   - Body: `{"tg_id": 123456789, "plan": "monthly", "country": "AE"}` (или `device_id` вместо `tg_id`)
   - Ответ: `{invoice_id, pay_url, amount_usd, amount_local, currency, expires_at}`
@@ -281,7 +281,7 @@ C:\safenet_vpn\
 
 - **Пользовательские эндпоинты:** Bearer JWT (HS256, 30 дней)
 - **Админские эндпоинты:** Заголовок `X-Admin-Secret: <ADMIN_SECRET из .env>`
-- Текущий `ADMIN_SECRET` на сервере: `safenet_admin_2026`
+- ⚠️ **Не коммитьте реальное значение!** Укажите в `.env.example`: `<ADMIN_SECRET>`
 
 ---
 
@@ -313,8 +313,8 @@ C:\safenet_vpn\
 ### Переменные окружения (.env ключи)
 | Ключ | Значение (prod) | Описание |
 |---|---|---|
-| `ADMIN_SECRET` | `safenet_admin_2026` | X-Admin-Secret для /admin/* и /affiliate/admin/* |
-| `AGENT_SECRET` | `safenet_agent_felix_2026` | X-Agent-Secret для POST /support/agent-message (Felix) |
+| `ADMIN_SECRET` | `<ADMIN_SECRET>` | X-Admin-Secret для /admin/* и /affiliate/admin/* |
+| `AGENT_SECRET` | `<AGENT_SECRET>` | X-Agent-Secret для POST /support/agent-message (Felix) |
 | `CRYPTOBOT_TOKEN` | (в .env) | Токен CryptoBot |
 | `SECRET_KEY` | (в .env) | JWT signing key |
 | `TRIAL_DAYS` | `3` | Длительность триала |
@@ -505,11 +505,11 @@ wg show wg0                         # WireGuard пиры
 Открывается из вкладки **Настройки** — карточка `💬 Техподдержка / FAQ · AI-агент`.
 
 **Карточки:**
-- `✈️ Написать в поддержку через Telegram` — открывает `https://t.me/SafeBypass_bot`
-
+- `✈️ Написать в поддержку через Telegram` — открывает `https://t.me/SafeBypass_bot`
+
 - `❓ FAQ` — встроенная база знаний (15+ Q&A, ru/en/fa), `FaqScreen`
-- `🤖 AI-агент SEIFY` — **встроенный AI-чат** прямо в приложении (`AiChatScreen`)
-
+- `🤖 AI-агент SEIFY` — **встроенный AI-чат** прямо в приложении (`AiChatScreen`)
+
 ### Support API — Архитектура
 
 AI-агент работает на Android-телефоне (Termux + Python + GLM-5 API). Flutter обращается к агенту напрямую через Cloudflare Tunnel. Агент использует **JWT пользователя** для всех вызовов — отдельный токен не нужен.
@@ -553,7 +553,7 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 |---|---|---|---|
 | `GET` | `/support/sessions/active?lang=ru` | Flutter | Активная сессия или авто-создание |
 | `POST` | `/support/sessions` | Flutter | Явное создание сессии |
-| `POST` | `/support/ask` | Flutter (JWT) | **AI-ответ** — FAQ search, сохраняет оба сообщения |
+| `POST` | `/support/ask` | Flutter (JWT) | **AI-ответ** — FAQ search, сохраняет оба сообщения |
 | `POST` | `/support/messages` | Flutter (JWT) | Сохранить сообщение пользователя (role=user) |
 | `POST` | `/support/agent-message` | Felix (X-Agent-Secret) | Ответ агента (role=agent автоматически) |
 | `GET` | `/support/history?session_id=&limit=50` | Flutter | История сообщений сессии |
@@ -564,10 +564,10 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 - Пользователи (Flutter): `Authorization: Bearer <JWT>`
 - Felix-бот: `X-Agent-Secret: safenet_agent_felix_2026`
 
-**POST /support/ask — формат:**
-```json
-{"message": "Как оплатить?", "lang": "ru"}
-// → {"answer": "...", "source": "faq", "topic": "payment"}
+**POST /support/ask — формат:**
+```json
+{"message": "Как оплатить?", "lang": "ru"}
+// → {"answer": "...", "source": "faq", "topic": "payment"}
 ```
 
 ---
@@ -636,7 +636,7 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 | UAE-экзамен: реальный SEIFY Agent | ✅ готово |
 | Локальный тест бота | ⏳ следующий шаг |
 | Деплой бота на сервер | ⏳ после теста |
-| Flutter UI чата (AiChatScreen) | ✅ готово (14.03.2026) |
+| Flutter UI чата (AiChatScreen) | ✅ готово (14.03.2026) |
 || /support/ask + ai_support.py | ✅ задеплоено (14.03.2026) |
 
 ---
@@ -734,7 +734,7 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 ### ✅ Новый эндпоинт: `POST /users/unlink-telegram`
 
 **Файл:** `backend/app/api/users.py` (строки 123–152)
-**Аутентификация:** `X-Admin-Secret: safenet_admin_2026`
+**Аутентификация:** `X-Admin-Secret: <ADMIN_SECRET>`
 
 **Тело запроса:**
 ```json
