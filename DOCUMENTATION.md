@@ -7,7 +7,7 @@ SafeNet VPN — кроссплатформенное приложение (Flutt
 ## 📂 Структура репозитория
 
 ```
-C:\safenet_vpn\
+C:\Users\53\Projects\SafeVPN\
 ├── backend/
 │   ├── app/
 │   │   ├── api/          # auth, users, vpn, payments, subscriptions, affiliate,
