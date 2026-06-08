@@ -1,0 +1,1 @@
+{"max_gateway_downtime_seconds": 180, "gossip_interval_seconds": 0.05, "max_hops": 5, "simulation_mode": true}
