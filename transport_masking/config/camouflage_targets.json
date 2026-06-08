@@ -1,0 +1,26 @@
+{
+  "targets": [
+    {
+      "domain": "www.amazon.com",
+      "description": "Крупный международный маркетплейс",
+      "headers": {
+        "Server": "Server",
+        "Content-Type": "text/html; charset=utf-8",
+        "X-Frame-Options": "SAMEORIGIN",
+        "Strict-Transport-Security": "max-age=47474747; includeSubDomains; preload"
+      }
+    },
+    {
+      "domain": "en.wikipedia.org",
+      "description": "Известная зарубежная энциклопедия",
+      "headers": {
+        "Server": "mw1465.eqiad.wmnet",
+        "Content-Type": "text/html; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, must-revalidate, max-age=0"
+      }
+    }
+  ],
+  "current_target": "www.amazon.com",
+  "rotation_interval_hours": 24
+}
