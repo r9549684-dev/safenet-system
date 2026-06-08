@@ -1,0 +1,1 @@
+{"token_secret": "super_secret_master_key_for_hmac", "blockchain_network": "TON", "expected_amount_usd": 10.0, "confirmations_required": 1, "default_token_duration_seconds": 3600}
