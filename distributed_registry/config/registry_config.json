@@ -1,0 +1,1 @@
+{"gossip_interval_seconds": 0.1, "max_hops": 5, "network_key_public": "mock_pub_key_node_a", "network_key_private": "mock_priv_key_node_a"}
