@@ -1,0 +1,1 @@
+{"master_ip": "10.0.0.1", "cloud_api_token": "mock_token", "blacklisted_regions": ["eu-west-2"], "max_auto_retries": 3}
