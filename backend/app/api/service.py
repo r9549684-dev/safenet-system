@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 from app.models.server import Server
 from app.models.user import User
 from app.models.connection import UserConnection
+from app.models.node_metrics import NodeMetrics
 from app.services.wireguard import WireGuardService
 from app.services.xray import get_vless_config
 from app.services.entitlements import is_user_premium, has_trial
@@ -206,61 +207,100 @@ async def smart_connect(
 ):
     """
     Умное подключение через SafeNet ANO.
-    Вместо случайного выбора, запрашивает метрики, ранжирует узлы и выдает
-    только сервер из "Зеленой зоны" (ANO Rating > 15).
+    Вместо случайного выбора, запрашивает реальные метрики Скаута, ранжирует узлы 
+    и выдает только сервер из "Зеленой зоны" (ANO Rating > 15).
     """
-    # 1. Получаем все доступные серверы (упрощенный мок для демонстрации логики ранжирования)
-    # В продакшене здесь должен быть запрос к таблице метрик/скаута.
-    _all_servers = (await session.execute(select(Server).where(Server.is_active == True))).scalars().all()
+    # 1. Получаем все активные серверы вместе с их метриками (LEFT JOIN)
+    query = (
+        select(Server, NodeMetrics)
+        .outerjoin(NodeMetrics, Server.id == NodeMetrics.server_id)
+        .where(Server.is_active == True)
+    )
+    results = (await session.execute(query)).all()
     
-    if not _all_servers:
+    if not results:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Нет доступных серверов")
 
-    # 2. Формируем список метрик для ранкера (мок-данные, будут заменены на реальные данные от Скаута)
+    # 2. Формируем список для ранкера из реальных данных БД (или дефолтных плохих метрик, если Скаут еще не обновил)
     nodes_for_ranking = []
-    for srv in _all_servers:
+    for srv, metrics in results:
         nodes_for_ranking.append({
             "id": srv.id,
             "country": srv.country,
             "host": srv.host,
-            # Мок-метрики. В реальной системе берутся из таблицы `service_node_metrics`
-            "rtt_avg": 45.0,          
-            "jitter": 12.0,           
-            "loss_pct": 2.0,          
-            "throughput_kbps": 5000.0,
-            "life_hours": 120.0       
+            "rtt_avg": float(metrics.rtt_avg) if metrics else 999.0,
+            "jitter": float(metrics.jitter) if metrics else 100.0,
+            "loss_pct": float(metrics.loss_pct) if metrics else 50.0,
+            "throughput_kbps": float(metrics.throughput_kbps) if metrics else 10.0,
+            "life_hours": float(metrics.life_hours) if metrics else 1.0
         })
 
     # 3. ANO Ранжирование: ищем лучший узел в Зеленой зоне (rating > 15)
     best_node = NodeRanker.select_best_node(nodes_for_ranking, min_rating=15.0)
     
     if not best_node:
-        log.warning("[ANO] Ни один сервер не прошел порог Зеленой зоны. Fallback на стандартный выбор.")
-        best_node = nodes_for_ranking[0] # Fallback
+        log.warning("[ANO] Ни один сервер не прошел порог Зеленой зоны. Fallback на первый доступный.")
+        best_node = next(({"id": srv.id, "country": srv.country, "host": srv.host} for srv, _ in results), None)
+        if not best_node:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Нет доступных серверов")
 
-    log.info(f"[ANO] Выбран оптимизированный узел: ID={best_node['id']}, Рейтинг={best_node['ano_rating']}, Зона={best_node['ano_zone']}")
+    log.info(f"[ANO] Выбран оптимизированный узел: ID={best_node['id']}, Рейтинг={best_node.get('ano_rating', 'N/A')}, Зона={best_node.get('ano_zone', 'FALLBACK')}")
     
-    # 4. Получаем реальный объект сервера из БД по выбранному ID
-    server = next((s for s in _all_servers if s.id == best_node["id"]), None)
+    # 4. Получаем реальный объект сервера из результатов по выбранному ID
+    server = next((srv for srv, _ in results if srv.id == best_node["id"]), None)
     if not server:
         raise HTTPException(status_code=500, detail="Ошибка выбора сервера ANO")
 
-    # 5. Дальнейшая логика идентична обычному /connect, но мы уверены в качестве узла
-    # (Копируем логику аллокации IP, генерации конфига и т.д. из основного эндпоинта)
+    # 5. Продакшен-логика аллокации подключения (идентична /connect, но для выбранного ANO узла)
+    is_limited = not (is_user_premium(user) or has_trial(user))
+    
+    conn_result = await session.execute(
+        select(UserConnection)
+        .where(UserConnection.user_id == user.id, UserConnection.server_id == server.id)
+        .order_by(UserConnection.created_at.desc())
+        .limit(1)
+    )
+    connection = conn_result.scalar_one_or_none()
+    peer_was_active = False
+
+    if connection is None:
+        private_key, public_key = WireGuardService.generate_keypair()
+        peer_ip = await WireGuardService.allocate_ip(session, server.id)
+        connection = UserConnection(
+            user_id=user.id,
+            server_id=server.id,
+            peer_private_key=private_key,
+            peer_public_key=public_key,
+            allocated_ip=peer_ip,
+            is_active=True,
+            created_at=datetime.utcnow(),
+        )
+        session.add(connection)
+    else:
+        peer_was_active = connection.is_active
+        connection.is_active = True
+
+    connection.last_used_at = datetime.utcnow()
     
     show_paywall = False
-    if not is_user_premium(user) and not has_trial(user):
-        show_paywall = True
+    if is_limited:
+        user.post_trial_connect_count += 1
+        show_paywall = (user.post_trial_connect_count % 2 == 0)
 
-    connection = UserConnection(
-        user_id=user.id,
-        server_id=server.id,
-        allocated_ip="10.8.0." + str(uuid.uuid4().int % 250 + 2), # Упрощенная аллокация для примера
-        peer_public_key="mock_pubkey_for_ano_test",
-        peer_private_key="mock_privkey_for_ano_test"
-    )
-    session.add(connection)
     await session.commit()
+
+    await WireGuardService.add_peer_to_server(
+        pubkey=connection.peer_public_key,
+        ip=connection.allocated_ip,
+    )
+
+    _user_is_premium = is_user_premium(user)
+    if not peer_was_active:
+        tier = "premium" if _user_is_premium else "trial"
+        log.info("[SPEED] user=%s tier=%s peer_ip=%s (new/reactivated)", user.device_id, tier, connection.allocated_ip)
+        await WireGuardService.apply_speed_limit(peer_ip=connection.allocated_ip, tier=tier)
+    else:
+        log.info("[SPEED] skip set-speed for %s — peer already active (VoIP safe)", connection.allocated_ip)
 
     wg_config = WireGuardService.generate_wg_config(
         server=server,

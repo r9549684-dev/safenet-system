@@ -6,6 +6,7 @@ from .connection import UserConnection
 from .affiliate import ReferralTransaction, WithdrawalRequest
 from .promocode import PromoCode, PromoCodeRedemption
 from .support import SupportSession, SupportMessage
+from .node_metrics import NodeMetrics
 
 __all__ = [
     "User",
@@ -19,4 +20,5 @@ __all__ = [
     "PromoCodeRedemption",
     "SupportSession",
     "SupportMessage",
+    "NodeMetrics",
 ]
