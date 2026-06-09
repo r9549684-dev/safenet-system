@@ -72,9 +72,9 @@ class FaqScreen extends StatelessWidget {
     {
       'category': 'Начало работы',
       'items': <Map<String, String>>[
-        {'q': 'Как скачать SafeNet VPN?', 'a': 'Скачайте APK по ссылке api.loveaibot.net/download/app или через Telegram-бот @safevpn_middleeast. iOS версия в разработке.'},
+        {'q': 'Как скачать SafeNet service?', 'a': 'Скачайте APK по ссылке api.loveaibot.net/download/app или через Telegram-бот @safevpn_middleeast. iOS версия в разработке.'},
         {'q': 'Нужна ли регистрация?', 'a': 'Нет. Приложение автоматически создаёт анонимный аккаунт при первом запуске. Никаких email или паролей.'},
-        {'q': 'Как подключиться к VPN?', 'a': 'Нажмите большую кнопку CONNECT на главном экране. Подключение займёт 3-5 секунд.'},
+        {'q': 'Как подключиться к service?', 'a': 'Нажмите большую кнопку CONNECT на главном экране. Подключение займёт 3-5 секунд.'},
       ],
     },
     {
@@ -97,8 +97,8 @@ class FaqScreen extends StatelessWidget {
       'category': 'Безопасность',
       'items': <Map<String, String>>[
         {'q': 'Безопасно ли использовать SafeNet?', 'a': 'Да. Мы используем шифрование военного класса (WireGuard + Reality). Ваш трафик не логируется.'},
-        {'q': 'Что такое Kill Switch?', 'a': 'При обрыве VPN-соединения Kill Switch блокирует весь интернет-трафик, чтобы ваш реальный IP не утёк.'},
-        {'q': 'Легально ли использовать VPN в ОАЭ?', 'a': 'VPN легален для законных целей. Использование VPN для доступа к законным сервисам не является нарушением.'},
+        {'q': 'Что такое Kill Switch?', 'a': 'При обрыве service-соединения Kill Switch блокирует весь интернет-трафик, чтобы ваш реальный IP не утёк.'},
+        {'q': 'Легально ли использовать service в ОАЭ?', 'a': 'service легален для законных целей. Использование service для доступа к законным сервисам не является нарушением.'},
       ],
     },
     {
@@ -106,7 +106,7 @@ class FaqScreen extends StatelessWidget {
       'items': <Map<String, String>>[
         {'q': 'Можно ли использовать на нескольких устройствах?', 'a': 'Каждое устройство получает свой UUID. Для нескольких устройств потребуются отдельные подписки.'},
         {'q': 'Как перенести аккаунт?', 'a': 'Скопируйте UUID из настроек и сообщите его в поддержку — мы привяжем подписку к новому устройству.'},
-        {'q': 'Будет ли iOS версия?', 'a': 'Да, iOS версия SafeNet VPN находится в активной разработке.'},
+        {'q': 'Будет ли iOS версия?', 'a': 'Да, iOS версия SafeNet service находится в активной разработке.'},
       ],
     },
     {
@@ -122,9 +122,9 @@ class FaqScreen extends StatelessWidget {
     {
       'category': 'Getting Started',
       'items': <Map<String, String>>[
-        {'q': 'How to download SafeNet VPN?', 'a': 'Download the APK from api.loveaibot.net/download/app or via Telegram bot @safevpn_middleeast. iOS version is coming soon.'},
+        {'q': 'How to download SafeNet service?', 'a': 'Download the APK from api.loveaibot.net/download/app or via Telegram bot @safevpn_middleeast. iOS version is coming soon.'},
         {'q': 'Is registration required?', 'a': 'No. The app automatically creates an anonymous account on first launch. No emails or passwords needed.'},
-        {'q': 'How to connect to VPN?', 'a': 'Tap the large CONNECT button on the home screen. Connection takes 3-5 seconds.'},
+        {'q': 'How to connect to service?', 'a': 'Tap the large CONNECT button on the home screen. Connection takes 3-5 seconds.'},
       ],
     },
     {
@@ -147,8 +147,8 @@ class FaqScreen extends StatelessWidget {
       'category': 'Security',
       'items': <Map<String, String>>[
         {'q': 'Is SafeNet safe to use?', 'a': 'Yes. We use military-grade encryption (WireGuard + Reality). Your traffic is not logged.'},
-        {'q': 'What is Kill Switch?', 'a': 'If the VPN connection drops, Kill Switch blocks all internet traffic to prevent your real IP from leaking.'},
-        {'q': 'Is VPN legal in UAE?', 'a': 'VPN is legal for lawful purposes. Using VPN to access legitimate services is not a violation.'},
+        {'q': 'What is Kill Switch?', 'a': 'If the service connection drops, Kill Switch blocks all internet traffic to prevent your real IP from leaking.'},
+        {'q': 'Is service legal in UAE?', 'a': 'service is legal for lawful purposes. Using service to access legitimate services is not a violation.'},
       ],
     },
     {
@@ -156,7 +156,7 @@ class FaqScreen extends StatelessWidget {
       'items': <Map<String, String>>[
         {'q': 'Can I use on multiple devices?', 'a': 'Each device gets its own UUID. Separate subscriptions are needed for multiple devices.'},
         {'q': 'How to transfer my account?', 'a': 'Copy your UUID from settings and share it with support — we\'ll link your subscription to the new device.'},
-        {'q': 'Will there be an iOS version?', 'a': 'Yes, the iOS version of SafeNet VPN is in active development.'},
+        {'q': 'Will there be an iOS version?', 'a': 'Yes, the iOS version of SafeNet service is in active development.'},
       ],
     },
     {
@@ -172,9 +172,9 @@ class FaqScreen extends StatelessWidget {
     {
       'category': 'شروع کار',
       'items': <Map<String, String>>[
-        {'q': 'چگونه SafeNet VPN را دانلود کنم؟', 'a': 'فایل APK را از api.loveaibot.net/download/app یا ربات تلگرام @safevpn_middleeast دانلود کنید. نسخه iOS به زودی.'},
+        {'q': 'چگونه SafeNet service را دانلود کنم؟', 'a': 'فایل APK را از api.loveaibot.net/download/app یا ربات تلگرام @safevpn_middleeast دانلود کنید. نسخه iOS به زودی.'},
         {'q': 'آیا ثبت‌نام لازم است؟', 'a': 'خیر. برنامه به‌طور خودکار یک حساب ناشناس ایجاد می‌کند. بدون ایمیل یا رمز عبور.'},
-        {'q': 'چگونه به VPN متصل شوم؟', 'a': 'دکمه بزرگ CONNECT را در صفحه اصلی بزنید. اتصال ۳ تا ۵ ثانیه طول می‌کشد.'},
+        {'q': 'چگونه به service متصل شوم؟', 'a': 'دکمه بزرگ CONNECT را در صفحه اصلی بزنید. اتصال ۳ تا ۵ ثانیه طول می‌کشد.'},
       ],
     },
     {
@@ -197,8 +197,8 @@ class FaqScreen extends StatelessWidget {
       'category': 'امنیت',
       'items': <Map<String, String>>[
         {'q': 'آیا استفاده از SafeNet امن است؟', 'a': 'بله. ما از رمزنگاری نظامی (WireGuard + Reality) استفاده می‌کنیم. ترافیک شما ثبت نمی‌شود.'},
-        {'q': 'Kill Switch چیست؟', 'a': 'اگر اتصال VPN قطع شود، Kill Switch تمام ترافیک اینترنت را مسدود می‌کند تا IP واقعی شما فاش نشود.'},
-        {'q': 'آیا VPN در امارات قانونی است؟', 'a': 'VPN برای اهداف قانونی مجاز است. استفاده از VPN برای دسترسی به خدمات قانونی تخلف نیست.'},
+        {'q': 'Kill Switch چیست؟', 'a': 'اگر اتصال service قطع شود، Kill Switch تمام ترافیک اینترنت را مسدود می‌کند تا IP واقعی شما فاش نشود.'},
+        {'q': 'آیا service در امارات قانونی است؟', 'a': 'service برای اهداف قانونی مجاز است. استفاده از service برای دسترسی به خدمات قانونی تخلف نیست.'},
       ],
     },
     {

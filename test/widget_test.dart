@@ -13,6 +13,6 @@ void main() {
   testWidgets('SafeNet app splash renders', (WidgetTester tester) async {
     await tester.pumpWidget(const SafeNetApp());
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('SafeNet VPN'), findsOneWidget);
+    expect(find.text('SafeNet service'), findsOneWidget);
   });
 }

@@ -2,7 +2,7 @@ import '../data/remote/api_client.dart';
 import '../data/remote/endpoints.dart';
 import '../data/local/secure_storage.dart';
 
-/// Высокоуровневый API-сервис для SafeNet VPN.
+/// Высокоуровневый API-сервис для SafeNet service.
 /// Все маршруты привязаны к бэкенду 89.208.107.67:8500.
 class ApiService {
   static final ApiService _i = ApiService._();
@@ -37,9 +37,9 @@ class ApiService {
     return await _api.get<Map<String, dynamic>>(Endpoints.servers);
   }
 
-  // ── VPN Connect ───────────────────────────────────────────────────────
+  // ── service Connect ───────────────────────────────────────────────────────
 
-  /// Подключиться к VPN-серверу (POST /vpn/connect/{server_id}).
+  /// Подключиться к service-серверу (POST /service/connect/{server_id}).
   /// Ответ содержит: wg_config, peer_ip, byedpi_profile, mode.
   /// [token] опционален — если null, используется токен из SecureStorage (через interceptor).
   Future<Map<String, dynamic>> connect(int serverId, {String? token}) async {

@@ -2,12 +2,12 @@ import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
 import 'package:safenet_vpn/core/config_cache_service.dart';
 
-/// Управляет Iran Mode VPN (sing-box subprocess).
+/// Управляет Iran Mode service (sing-box subprocess).
 /// Только для Iran-билда (bundleHiddify → заменяем на bundleSingbox).
 const bundleSingbox = bool.fromEnvironment('BUNDLE_HIDDIFY', defaultValue: false);
 
 class SingboxVpn {
-  static const _channel = MethodChannel('com.safenet.vpn/singbox');
+  static const _channel = MethodChannel('com.safenet.service/singbox');
   static const _apiBase = 'https://api.loveaibot.net';
 
   /// Взять singbox config из очереди (удалить из головы), при пустой — сеть.
@@ -28,7 +28,7 @@ class SingboxVpn {
     return ConfigCacheService.dequeueSingboxJson(token, 'IR');
   }
 
-  /// Запустить Iran VPN.
+  /// Запустить Iran service.
   /// [configJson] — JSON из API (только outbounds + route).
   static Future<bool> start(String configJson) async {
     try {
@@ -41,7 +41,7 @@ class SingboxVpn {
     }
   }
 
-  /// Остановить Iran VPN.
+  /// Остановить Iran service.
   static Future<void> stop() async {
     try { await _channel.invokeMethod('stop'); } catch (_) {}
   }

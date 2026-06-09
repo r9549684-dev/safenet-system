@@ -35,7 +35,7 @@ class SafeNetApp extends StatelessWidget {
       ],
       child: Consumer<AuthProvider>(
         builder: (_, auth, __) => MaterialApp(
-          title: 'SafeNet VPN',
+          title: 'SafeNet service',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.forLocale(Locale(auth.language)),
           locale: Locale(auth.language),

@@ -1,6 +1,6 @@
-# SafeNet VPN
+# SafeNet service
 
-VPN-сервис для обхода цензуры. Flutter (Android) + FastAPI backend. Поддержка WireGuard, AmneziaWG, VLESS+Reality+Fragment (sing-box), ByeDPI.
+service-сервис для обхода цензуры. Flutter (Android) + FastAPI backend. Поддержка WireGuard, AmneziaWG, VLESS+Reality+Fragment (sing-box), ByeDPI.
 
 ## Рынки
 - **ОАЭ** — основной активный рынок (Etisalat/Du DPI, высокая платёжеспособность)

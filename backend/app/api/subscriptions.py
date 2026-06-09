@@ -88,7 +88,7 @@ def _country_prices(country: str) -> dict:
         "country":    country,
         "currency":   currency,
         "fx_rate":    fx_rate,
-        "load_badge": None,   # TODO: подключить к /vpn/servers-status (нагрузка)
+        "load_badge": None,   # TODO: подключить к /service/servers-status (нагрузка)
         "plans":      plans,
     }
 
@@ -171,7 +171,7 @@ async def purchase(
     else:
         payload = f"user:{user.id}:months:{months}:ts:{int(datetime.utcnow().timestamp())}"
 
-    desc = f"SafeNet VPN Premium — {plan_info['label']}"
+    desc = f"SafeNet service Premium — {plan_info['label']}"
     if country:
         desc += f" ({country.upper()})"
 

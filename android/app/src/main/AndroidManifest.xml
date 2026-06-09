@@ -38,7 +38,7 @@
             android:foregroundServiceType="specialUse" />
         <!-- XrayService — VLESS+Reality фолбэк-режим -->
         <service
-            android:name=".vpn.XrayService"
+            android:name=".service.XrayService"
             android:exported="false" />
         <!-- SingboxVpnService — Iran Mode (VLESS+Reality via sing-box subprocess) -->
         <service

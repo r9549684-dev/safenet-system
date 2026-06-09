@@ -1,7 +1,7 @@
 """
 Server Status API
 Проверяет доступность и задержку серверов (для техподдержки и бота SEIFY).
-Маршрут: GET /vpn/servers-status
+Маршрут: GET /service/servers-status
 """
 import asyncio
 import time
@@ -13,7 +13,7 @@ from fastapi import Depends
 from app.database import get_session
 from app.models.server import Server
 
-router = APIRouter(tags=["vpn"])
+router = APIRouter(tags=["service"])
 
 
 async def _check_server(host: str, port: int, timeout: float = 3.0) -> dict:
@@ -46,10 +46,10 @@ def _classify_status(reachable: bool, latency_ms: int | None) -> str:
     return "online"
 
 
-@router.get("/vpn/servers-status")
+@router.get("/service/servers-status")
 async def servers_status(session: AsyncSession = Depends(get_session)):
     """
-    GET /vpn/servers-status
+    GET /service/servers-status
 
     Возвращает статус каждого сервера из БД.
     Проверяет WireGuard-порт (443/UDP — через TCP fallback) и Xray-порт.

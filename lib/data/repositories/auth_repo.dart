@@ -10,7 +10,7 @@ class AuthRepository {
   final _api = ApiClient();
 
   // MethodChannel уже объявлен в MainActivity.kt — переиспользуем
-  static const _channel = MethodChannel('com.safenet.vpn/methods');
+  static const _channel = MethodChannel('com.safenet.service/methods');
 
   Future<String> getOrCreateDeviceId() async {
     try {

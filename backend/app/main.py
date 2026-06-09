@@ -22,6 +22,7 @@ from app.api import (
     admin_router,
     payments_admin_router,
     subscriptions_router,
+    ano_router,
 )
 
 setup_logging(settings.DEBUG)
@@ -69,3 +70,4 @@ app.include_router(version_router)
 app.include_router(admin_router)
 app.include_router(payments_admin_router)
 app.include_router(subscriptions_router)
+app.include_router(ano_router)

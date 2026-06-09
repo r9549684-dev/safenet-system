@@ -36,6 +36,6 @@ class AppConstants {
     'VE': {'monthly': 1.99, 'yearly': 19.99},
   };
 
-  // VPN Channel (com.safenet.vpn/methods — по документу)
-  static const String vpnMethodChannel = 'com.safenet.vpn/methods';
+  // service Channel (com.safenet.service/methods — по документу)
+  static const String vpnMethodChannel = 'com.safenet.service/methods';
 }

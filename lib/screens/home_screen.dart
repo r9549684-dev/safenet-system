@@ -8,7 +8,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../config/theme.dart';
 import '../l10n/app_localizations.dart';
 import '../domain/enums/vpn_status.dart';
-import '../domain/models/server.dart';
+import '../domain/models/server_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../providers/vpn_provider.dart';
@@ -36,14 +36,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    final vpn  = context.read<VpnProvider>();
+    final service  = context.read<VpnProvider>();
     final auth = context.read<AuthProvider>();
     Future.microtask(() async {
       if (!mounted) return;
-      await vpn.loadServers();
+      await service.loadServers();
       if (!mounted) return;
       final hasFullAccess = auth.user?.hasAccess ?? true;
-      await vpn.checkAutoConnect(isPremium: hasFullAccess);
+      await service.checkAutoConnect(isPremium: hasFullAccess);
       if (mounted) context.read<AffiliateProvider>().loadProfile();
       if (mounted) UpdateChecker.check(context);
       // Тихая пред-регистрация — ускоряет первое подключение (цель — 5 секунд)
@@ -71,8 +71,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Consumer<VpnProvider>(
-      builder: (context, vpn, _) {
-        final server = vpn.selected ?? vpn.active ?? VpnServer.defaults.first;
+      builder: (context, service, _) {
+        final server = service.selected ?? service.active ?? service.servers.firstOrNull;
+        final countryCode = server?.country ?? 'IR'; // Fallback
+        
         return Scaffold(
           backgroundColor: AppTheme.bg,
           body: Stack(
@@ -103,20 +105,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         index: _tab,
                         children: [
                           _HomeTab(
-                            status: vpn.status,
-                            uptime: vpn.elapsedFormatted,
+                            status: service.status,
+                            uptime: service.elapsedFormatted,
                             server: server,
                             mode: _mode,
-                            error: vpn.error,
+                            error: service.error,
                             onUpgradeTap: () => setState(() => _tab = 2),
                             onToggle: () async {
-                              if (vpn.status == VpnStatus.connected ||
-                                  vpn.status == VpnStatus.error) {
-                              if (vpn.status == VpnStatus.error) {
+                              if (service.status == VpnStatus.connected ||
+                                  service.status == VpnStatus.error) {
+                              if (service.status == VpnStatus.error) {
                               final auth = context.read<AuthProvider>();
                                 final isPremium = auth.user?.hasAccess ?? true;
-                                vpn.connect(
-                                  countryCode: server.country,
+                                service.connect(
+                                  countryCode: countryCode,
                                   mode: _mode,
                                   isPremium: isPremium,
                                   onShowPaywall: () {
@@ -124,13 +126,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   },
                                 );
                               } else {
-                                vpn.disconnect();
+                                service.disconnect();
                               }
-                            } else if (vpn.status == VpnStatus.disconnected) {
+                            } else if (service.status == VpnStatus.disconnected) {
                               final auth = context.read<AuthProvider>();
                               final isPremium = auth.user?.hasAccess ?? true;
-                              vpn.connect(
-                                countryCode: server.country,
+                              service.connect(
+                                countryCode: countryCode,
                                 mode: _mode,
                                 isPremium: isPremium,
                                 onShowPaywall: () {
@@ -142,10 +144,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             onModeChange: (m) => setState(() => _mode = m),
                           ),
                           ServersScreen(
-                            currentId: server.id,
+                            servers: service.servers,
+                            currentId: server?.id,
                             embedded: true,
                             onSelect: (s) {
-                              vpn.selectServer(s);
+                              service.selectServer(s);
                               setState(() => _tab = 0);
                             },
                           ),
@@ -170,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
 class _HomeTab extends StatelessWidget {
   final VpnStatus status;
   final String uptime;
-  final VpnServer server;
+  final ServerModel? server;
   final String mode;
   final String? error;
   final VoidCallback onToggle;
@@ -538,14 +541,14 @@ class _HomeTab extends StatelessWidget {
           if (status == VpnStatus.connected) ...[
             const SizedBox(height: 20),
             Consumer<VpnProvider>(
-              builder: (ctx, vpn, _) {
+              builder: (ctx, service, _) {
                 final ll = AppLocalizations.of(ctx);
                 return Row(children: [
-                  _StatCard(label: ll.statsDownload, value: vpn.rxSpeedFormatted, color: AppTheme.success),
+                  _StatCard(label: ll.statsDownload, value: service.rxSpeedFormatted, color: AppTheme.success),
                   const SizedBox(width: 10),
-                  _StatCard(label: ll.statsUpload,   value: vpn.txSpeedFormatted, color: AppTheme.primary),
+                  _StatCard(label: ll.statsUpload,   value: service.txSpeedFormatted, color: AppTheme.primary),
                   const SizedBox(width: 10),
-                  _StatCard(label: ll.statsPing,     value: vpn.pingFormatted,     color: AppTheme.warning),
+                  _StatCard(label: ll.statsPing,     value: service.pingFormatted,     color: AppTheme.warning),
                 ]);
               },
             ),
@@ -1118,12 +1121,17 @@ class _SettingsTabState extends State<_SettingsTab> {
               _sectionLabel(ll.sectionServer),
               Consumer<VpnProvider>(
                 builder: (ctx2, vpn2, _) {
-                  final srv = vpn2.selected ?? vpn2.active ?? VpnServer.defaults.first;
+                  final srv = vpn2.selected ?? vpn2.active ?? vpn2.servers.firstOrNull;
                   return GestureDetector(
                     onTap: () async {
-                      final s = await Navigator.push<VpnServer>(
+                      final s = await Navigator.push<ServerModel>(
                         ctx2,
-                        MaterialPageRoute(builder: (_) => ServersScreen(currentId: srv.id)),
+                        MaterialPageRoute(
+                          builder: (_) => ServersScreen(
+                            servers: vpn2.servers,
+                            currentId: srv?.id,
+                          ),
+                        ),
                       );
                       if (s != null) vpn2.selectServer(s);
                     },
@@ -1132,19 +1140,21 @@ class _SettingsTabState extends State<_SettingsTab> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(children: [
-                            Text(srv.audienceFlags, style: const TextStyle(fontSize: 36)),
+                            Text(srv?.flag ?? '🌍', style: const TextStyle(fontSize: 36)),
                             const SizedBox(width: 14),
                             Expanded(child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(srv.audienceName,
+                                Text(srv?.audienceName ?? 'Не выбран',
                                   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15,
                                     color: AppTheme.textPrimary)),
-                                Text('${srv.forLabel} · ${srv.ping}ms',
+                                Text(srv?.bypassMode == 'default'
+                                    ? (srv?.country ?? 'Не выбран')
+                                    : '${srv?.country} • ${srv?.bypassMode}',
                                   style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                               ],
                             )),
-                            _ModeBadge(srv.mode),
+                            _ModeBadge(srv?.bypassMode ?? 'default'),
                             const SizedBox(width: 8),
                             const Icon(Icons.chevron_right, color: AppTheme.textMuted),
                           ]),

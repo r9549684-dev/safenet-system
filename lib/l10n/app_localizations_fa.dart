@@ -9,7 +9,7 @@ class AppLocalizationsFa extends AppLocalizations {
   AppLocalizationsFa([String locale = 'fa']) : super(locale);
 
   @override
-  String get appName => 'سیف‌نت VPN';
+  String get appName => 'سیف‌نت service';
 
   @override
   String get splashTagline => 'امن. خصوصی. رایگان.';
@@ -18,7 +18,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get chooseLanguage => 'زبان را انتخاب کنید';
 
   @override
-  String get onb1Title => 'سیف‌نت VPN';
+  String get onb1Title => 'سیف‌نت service';
 
   @override
   String get onb1Sub => 'سانسور اینترنت در امارات، ترکیه و سایر کشورها را دور بزنید — به‌طور نامحسوس.';
@@ -241,7 +241,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get expiryLabel => 'انقضا';
 
   @override
-  String get sectionVpn => 'تنظیمات VPN';
+  String get sectionVpn => 'تنظیمات service';
 
   @override
   String get killSwitchDesc => 'آی‌پی شما هنگام قطع اتصال لو نمی‌رود';
@@ -328,7 +328,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get codeCopied => 'کد کپی شد';
 
   @override
-  String get discountCardTitle => 'VPN با ۵۰٪ تخفیف';
+  String get discountCardTitle => 'service با ۵۰٪ تخفیف';
 
   @override
   String get discountCardHeader => '👥 دوست بیاور';
@@ -485,7 +485,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get homeInviteTitle => '👥 دوست دعوت کن — نصف قیمت بپرداز';
 
   @override
-  String get sectionServer => 'پروفایل VPN';
+  String get sectionServer => 'پروفایل service';
 
   @override
   String get serverCardDesc => 'برای تغییر سرور ضربه بزنید';

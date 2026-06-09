@@ -133,7 +133,7 @@ async def unlink_telegram(
 ):
     """
     Вызывается @SafeBypass_bot при команде /unlink.
-    Очищает telegram_id у пользователя — связь между VPN-аккаунтом
+    Очищает telegram_id у пользователя — связь между service-аккаунтом
     и Telegram полностью удаляется.
     """
     q = await session.execute(select(User).where(User.telegram_id == body.telegram_id))

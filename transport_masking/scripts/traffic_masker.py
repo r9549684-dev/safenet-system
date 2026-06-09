@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Алгоритм идеальной маскировки трафика SafeNet VPN.
+Алгоритм идеальной маскировки трафика SafeNet service.
 Реализует имитацию легитимного HTTPS-трафика, скоростной фоллбек и динамическую смену SNI.
 """
 import json
@@ -31,11 +31,11 @@ class TrafficMasker:
     def evaluate_packet_for_dpi(self, packet_payload: bytes) -> bool:
         """
         Тест 1: Имитация проверки DPI.
-        Проверяет, что пакет не содержит VPN-сигнатур и выглядит как TLS 1.3 Application Data или Handshake.
+        Проверяет, что пакет не содержит service-сигнатур и выглядит как TLS 1.3 Application Data или Handshake.
         """
         no_vpn_signatures = True
-        # Проверяем отсутствие сигнатур популярных VPN-протоколов в полезной нагрузке
-        vpn_keywords = [b'wireguard', b'openvpn', b'x-custom-vpn', b'x-custom-wg']
+        # Проверяем отсутствие сигнатур популярных service-протоколов в полезной нагрузке
+        vpn_keywords = [b'wireguard', b'openvpn', b'x-custom-service', b'x-custom-wg']
         for kw in vpn_keywords:
             if kw in packet_payload.lower():
                 no_vpn_signatures = False

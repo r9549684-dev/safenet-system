@@ -3,21 +3,24 @@ import 'package:flutter/material.dart';
 import '../data/repositories/server_repo.dart';
 import '../data/repositories/auth_repo.dart';
 import '../data/local/secure_storage.dart';
-import '../domain/models/server.dart';
+import '../domain/models/server_model.dart';
 import '../domain/enums/vpn_status.dart';
 import '../services/vpn_service.dart';
 import '../core/singbox_vpn.dart';
 import '../core/config_cache_service.dart';
+import '../core/constants.dart';
+
+// bundleSingbox is defined in singbox_vpn.dart, but we can access it if we import it.
 
 class VpnProvider extends ChangeNotifier {
   final _repo    = ServerRepository();
   final _service = VPNService();
 
-  VpnStatus   _status   = VpnStatus.disconnected;
-  VpnServer?  _selected;
-  VpnServer?  _active;
-  List<VpnServer> _servers = [];
-  String?     _error;
+  VpnStatus     _status   = VpnStatus.disconnected;
+  ServerModel?  _selected;
+  ServerModel?  _active;
+  List<ServerModel> _servers = [];
+  String?       _error;
   DateTime?   _connectedAt;
   Duration    _elapsed = Duration.zero;
   String?     _proxyAddress;
@@ -36,9 +39,9 @@ class VpnProvider extends ChangeNotifier {
   bool _isUnlimitedSession = false;  // true — premium/active trial, false — post-trial free
 
   VpnStatus       get status          => _status;
-  VpnServer?      get selected        => _selected;
-  VpnServer?      get active          => _active;
-  List<VpnServer> get servers         => _servers;
+  ServerModel?    get selected        => _selected;
+  ServerModel?    get active          => _active;
+  List<ServerModel> get servers       => _servers;
   String?         get error           => _error;
   Duration        get elapsed         => _elapsed;
   String?         get proxyAddress    => _proxyAddress;
@@ -64,7 +67,8 @@ class VpnProvider extends ChangeNotifier {
     if (_isLoadingServers) return;
     _isLoadingServers = true;
     try {
-      _servers = await _repo.getServers(country: country);
+      final fetchedServers = await _repo.getServers(country: country);
+      _servers = fetchedServers.cast<ServerModel>();
       // Выбираем первый сервер если ещё не выбран
       if (_selected == null && _servers.isNotEmpty) {
         _selected = _servers.first;
@@ -78,7 +82,7 @@ class VpnProvider extends ChangeNotifier {
     }
   }
 
-  void selectServer(VpnServer s) {
+  void selectServer(ServerModel s) {
     _selected = s;
     notifyListeners();
   }
@@ -113,7 +117,7 @@ class VpnProvider extends ChangeNotifier {
       if (_servers.isNotEmpty) {
         _selected = _servers.first;
       } else {
-        _selected = VpnServer.defaults.first;
+        throw 'Список серверов пуст. Проверьте подключение к сети.';
       }
     }
 

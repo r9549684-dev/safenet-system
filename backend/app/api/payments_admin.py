@@ -108,7 +108,7 @@ async def admin_create_invoice(
     else:
         payload = f"user:{user.id}:months:{months}:ts:{int(datetime.utcnow().timestamp())}"
 
-    desc = f"SafeNet VPN Premium — {plan_info['label']}"
+    desc = f"SafeNet service Premium — {plan_info['label']}"
     if country:
         desc += f" ({country})"
 

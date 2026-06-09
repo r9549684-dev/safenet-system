@@ -11,7 +11,7 @@ class TestTransportMasking(unittest.TestCase):
         self.rotate_script = os.path.join(self.base_dir, '..', 'scripts', 'rotate_camouflage.sh')
 
     def test_01_dpi_imitation(self):
-        """Тест 1: Имитация проверки DPI - трафик должен выглядеть как обычный HTTPS, без признаков VPN"""
+        """Тест 1: Имитация проверки DPI - трафик должен выглядеть как обычный HTTPS, без признаков service"""
         with open(self.masker_script, 'r', encoding='utf-8') as f:
             content = f.read()
             
@@ -20,10 +20,10 @@ class TestTransportMasking(unittest.TestCase):
             re.search(r'tls|sni|handshake|application_data', content, re.IGNORECASE),
             "Должна быть реализация имитации TLS-рукопожатия и SNI"
         )
-        # Проверяем отсутствие или блокировку VPN-сигнатур (WireGuard, OpenVPN)
+        # Проверяем отсутствие или блокировку service-сигнатур (WireGuard, OpenVPN)
         self.assertTrue(
             re.search(r'block.*wireguard|drop.*openvpn|no_vpn_signatures', content, re.IGNORECASE),
-            "Скрипт должен явно блокировать или не использовать VPN-сигнатуры в исходящем трафике"
+            "Скрипт должен явно блокировать или не использовать service-сигнатуры в исходящем трафике"
         )
 
     def test_02_auto_speed_switch(self):
@@ -52,10 +52,10 @@ class TestTransportMasking(unittest.TestCase):
             re.search(r'"Content-Type":\s*"text/html|"Content-Type":\s*"application/json', content, re.IGNORECASE),
             "Должен быть корректный Content-Type"
         )
-        # Проверяем, что VPN-заголовки явно отсутствуют или удаляются (проверка как ключей словаря или значений)
+        # Проверяем, что service-заголовки явно отсутствуют или удаляются (проверка как ключей словаря или значений)
         self.assertFalse(
-            re.search(r'["\']x-vpn["\']|["\']x-wireguard["\']', content, re.IGNORECASE),
-            "В подменяемых заголовках не должно быть упоминаний VPN"
+            re.search(r'["\']x-service["\']|["\']x-wireguard["\']', content, re.IGNORECASE),
+            "В подменяемых заголовках не должно быть упоминаний service"
         )
 
     def test_04_dynamic_camouflage_config(self):

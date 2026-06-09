@@ -239,7 +239,7 @@ class _ReferralCodeCard extends StatelessWidget {
   );
 }
 
-// ── Блок 1: ВПН за 50% цены (1–10 рефералов) ────────────────────────────
+// ── Блок 1: сервис за 50% цены (1–10 рефералов) ────────────────────────────
 
 class _DiscountCard extends StatelessWidget {
   const _DiscountCard();

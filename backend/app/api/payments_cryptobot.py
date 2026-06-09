@@ -31,7 +31,7 @@ async def create_invoice(
         raise HTTPException(status_code=400, detail="months invalid")
 
     payload = f"user:{user.id}:months:{months}:ts:{int(datetime.utcnow().timestamp())}"
-    desc = f"SafeNet VPN Premium {months} month(s)"
+    desc = f"SafeNet service Premium {months} month(s)"
 
     data = await cryptobot.create_invoice(amount=amount, payload=payload, description=desc)
     if not data.get("ok"):

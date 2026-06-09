@@ -79,13 +79,13 @@ except Exception as e:
 
 print()
 
-# === Шаг 3: POST /vpn/connect/{server_id} ===
+# === Шаг 3: POST /service/connect/{server_id} ===
 print("=" * 60)
-print("STEP 3: POST /vpn/connect/" + str(server_id))
+print("STEP 3: POST /service/connect/" + str(server_id))
 print("=" * 60)
 
 req3 = urllib.request.Request(
-    BASE + "/vpn/connect/" + str(server_id),
+    BASE + "/service/connect/" + str(server_id),
     data=b"{}",
     headers={
         "Authorization": "Bearer " + token,

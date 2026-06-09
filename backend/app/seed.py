@@ -26,7 +26,7 @@ DEFAULT_PROFILES = {
 }
 
 DEFAULT_SERVERS = [
-    # MVP: один сервер (тот же), позже добавишь реальные VPN-ноды/локации
+    # MVP: один сервер (тот же), позже добавишь реальные service-ноды/локации
     {"country": "TR", "name": "TR-1", "host": "89.208.107.67", "port": 51820, "priority": 10, "meta": {"type": "mvp-single"}},
     {"country": "EG", "name": "EG-1", "host": "89.208.107.67", "port": 51820, "priority": 10, "meta": {"type": "mvp-single"}},
     {"country": "AE", "name": "AE-1", "host": "89.208.107.67", "port": 51820, "priority": 10, "meta": {"type": "mvp-single"}},

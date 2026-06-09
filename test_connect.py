@@ -13,9 +13,9 @@ resp = urllib.request.urlopen(req)
 token = json.loads(resp.read())["access_token"]
 print("TOKEN OK:", token[:40], "...")
 
-# 2. Test /vpn/connect/3
+# 2. Test /service/connect/3
 req2 = urllib.request.Request(
-    BASE + "/vpn/connect/3",
+    BASE + "/service/connect/3",
     data=b"{}",
     headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
     method="POST"

@@ -1,16 +1,16 @@
-# SafeNet VPN — Документация проекта
+# SafeNet service — Документация проекта
 
-SafeNet VPN — кроссплатформенное приложение (Flutter) + бэкенд (FastAPI). VPN-сервис с AmneziaWG/WireGuard, VLESS+Reality (Xray), системой подписок, промокодов и партнёрской программой.
+SafeNet service — кроссплатформенное приложение (Flutter) + бэкенд (FastAPI). service-сервис с AmneziaWG/WireGuard, VLESS+Reality (Xray), системой подписок, промокодов и партнёрской программой.
 
 ---
 
 ## 📂 Структура репозитория
 
 ```
-C:\Users\53\Projects\SafeVPN\
+C:\Users\53\Projects\SafeService\
 ├── backend/
 │   ├── app/
-│   │   ├── api/          # auth, users, vpn, payments, subscriptions, affiliate,
+│   │   ├── api/          # auth, users, service, payments, subscriptions, affiliate,
 │   │   │                #  promocodes, servers, profiles, support, admin, version
 │   │   ├── models/       # SQLAlchemy ORM-модели
 │   │   ├── schemas/      # Pydantic-схемы
@@ -37,7 +37,7 @@ C:\Users\53\Projects\SafeVPN\
 │   ├── services/         # update_checker.dart
 │   └── l10n/             # ARB + сгенерированные файлы (en/ru/fa)
 ├── android/
-│   └── app/src/main/kotlin/com/safenet/vpn/
+│   └── app/src/main/kotlin/com/safenet/service/
 │       ├── MainActivity.kt
 │       └── SingboxVpnService.kt       # Foreground service для sing-box
 ├── assets/
@@ -162,8 +162,8 @@ C:\Users\53\Projects\SafeVPN\
 ### Users
 - `GET /users/me` — профиль текущего пользователя
 
-### VPN
-- `POST /vpn/connect/{server_id}` — выдаёт WireGuard-конфиг + ByeDPI-профиль + VLESS-конфиг. Проверяет доступ (trial/premium). Выделяет IP, регистрирует пир, применяет лимит скорости (`trial=3Mbit`, `premium=10Mbit`).
+### service
+- `POST /service/connect/{server_id}` — выдаёт WireGuard-конфиг + ByeDPI-профиль + VLESS-конфиг. Проверяет доступ (trial/premium). Выделяет IP, регистрирует пир, применяет лимит скорости (`trial=3Mbit`, `premium=10Mbit`).
 
 ### Payments (CryptoBot)
 - `POST /payments/cryptobot/invoice` — создать инвойс
@@ -325,14 +325,14 @@ C:\Users\53\Projects\SafeVPN\
 ## 📱 Мобильное приложение (Flutter / Android)
 
 - **Auth:** Device ID (без пароля)
-- **VPN:** 3 режима (см. ниже)
+- **service:** 3 режима (см. ниже)
 - **Payments:** CryptoBot Web URL (гео-цены)
 - **Affiliate:** реферальная ссылка, QR-код, статистика
 - **Доступ:**
   - Trial: 7 дней (после — 403)
   - Premium: полный доступ (10 Мбит/с)
 
-### Режимы VPN (кнопки на главном экране)
+### Режимы service (кнопки на главном экране)
 
 | Кнопка | Внутреннее | Протокол | Файл |
 |---|---|---|---|
@@ -386,7 +386,7 @@ C:\Users\53\Projects\SafeVPN\
 
 ### 🏠 Редизайн главного экрана *(добавлено 25.02.2026)*
 
-Карточка выбора сервера убрана с главного экрана и перенесена в раздел **Настройки** (секция «VPN Profile»).
+Карточка выбора сервера убрана с главного экрана и перенесена в раздел **Настройки** (секция «service Profile»).
 На главном экране теперь два блока:
 
 **Block A — Партнёрский баннер:**
@@ -576,7 +576,7 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 
 ### ОАЭ — основной рынок *(выбран 05.03.2026)*
 - **Статус:** активен, приоритетный
-- **Причина:** 65.78% VPN-проникновение, 88% экспатов, DPI-цензура (не BGP), высокая покупательная способность
+- **Причина:** 65.78% service-проникновение, 88% экспатов, DPI-цензура (не BGP), высокая покупательная способность
 - **Ценообразование:** $4.99/нед · $9.99/мес · $24.99/кварт · $49.99/год (geo_mult 1.6678)
 - **Местная валюта:** AED (дирхам, fx_rate ~3.67)
 - **Онбординг:** отдельный EN-флоу (build_china.ps1, country=AE, bundleSingbox=true)
@@ -584,7 +584,7 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 
 ### Иран — пауза
 - **Статус:** приостановлен с 28.02.2026
-- **Причина:** BGP-shutdown (операторы IR вырезаны из глобального интернета на BGP-уровне, ~1% связности). VPN не работает на BGP-уровне.
+- **Причина:** BGP-shutdown (операторы IR вырезаны из глобального интернета на BGP-уровне, ~1% связности). service не работает на BGP-уровне.
 - **Технический стек для IR:** build_iran.ps1 (bundleSingbox=true, sing-box VLESS+Reality+Fragment) — готов к возобновлению при восстановлении связности
 - **Мониторинг:** https://ioda.inetintel.cc.gatech.edu/
 
@@ -601,7 +601,7 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 - **Роль:** RAG-агент поддержки (отвечает на вопросы пользователей через Telegram + чат в приложении)
 - **Токен:** `AGENT_SECRET=safenet_agent_felix_2026` (в `infra/.env`)
 - **Эндпоинт ответа:** `POST /support/agent-message` (X-Agent-Secret)
-- **Файл общения:** `C:\Users\53\Felix\Разработчики\Файл общения разработчиков впн и техподд.md`
+- **Файл общения:** `C:\Users\53\Felix\Разработчики\Файл общения разработчиков сервис и техподд.md`
 - **Локальный проект:** `C:\Users\53\Felix\`
 
 ### SEIFY AI — интеграция в Telegram-бот *(добавлено 14.03.2026)*
@@ -615,8 +615,8 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 - Команды: /start, /help, /pay, /download, /unlink + callback confirm/cancel link
 - Свободные сообщения → SEIFY AI:
   - UUID в тексте → карточка аккаунта (`GET /admin/users/lookup`)
-  - VPN-вопрос → RAG-поиск (LightRAG или FAQ keyword fallback)
-  - Off-topic → блокировка с предложением VPN-тем
+  - service-вопрос → RAG-поиск (LightRAG или FAQ keyword fallback)
+  - Off-topic → блокировка с предложением service-тем
 - Автоопределение языка: RU/EN/FA/TR/AR
 - Feedback кнопки 👍/👎 для обучения
 
@@ -642,7 +642,7 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 ---
 
 ## 🛠 Контакты и доступы
-- **GitHub:** https://github.com/r9549684-dev/safenet-vpn (Private)
+- **GitHub:** https://github.com/r9549684-dev/safenet-service (Private)
 - **API (prod):** https://api.loveaibot.net
 - **API (direct):** http://89.208.107.67:8500
 - **Разработчик:** Warp Agent
@@ -658,7 +658,7 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 **Причина:** `FlutterSecureStorage` (EncryptedSharedPreferences) хранит данные в приватной директории приложения. Android **удаляет** их вместе с приложением при uninstall.
 
 **Исправление:**
-- `android/app/src/main/kotlin/com/safenet/vpn/MainActivity.kt` — добавлен обработчик `getAndroidId` в MethodChannel `com.safenet.vpn/methods`. Возвращает `Settings.Secure.ANDROID_ID` — аппаратный ID, который **не меняется при переустановке** (только при factory reset или смене пользователя Android).
+- `android/app/src/main/kotlin/com/safenet/service/MainActivity.kt` — добавлен обработчик `getAndroidId` в MethodChannel `com.safenet.service/methods`. Возвращает `Settings.Secure.ANDROID_ID` — аппаратный ID, который **не меняется при переустановке** (только при factory reset или смене пользователя Android).
 - `lib/data/repositories/auth_repo.dart` — `getOrCreateDeviceId()` теперь:
   1. Проверяет сохранённый ID в SecureStorage (backward-compatible для существующих пользователей)
   2. Если нет → запрашивает `ANDROID_ID` через MethodChannel
@@ -698,10 +698,10 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 - `lib/l10n/app_localizations_en.dart`, `_ru.dart`, `_fa.dart`
 
 **Релиз:** APK v1.2.0 загружен на GitHub Releases.
-**Ссылка:** https://github.com/r9549684-dev/safenet-vpn/releases/download/v1.2.0/SafeNet-v1.2.0.apk
+**Ссылка:** https://github.com/r9549684-dev/safenet-service/releases/download/v1.2.0/SafeNet-v1.2.0.apk
 
 **Актуальный релиз:** APK v1.3.1
-**Ссылка для скачивания (GitHub, приватный):** https://github.com/r9549684-dev/safenet-vpn/releases/download/v1.3.1/SafeNet-v1.3.1.apk
+**Ссылка для скачивания (GitHub, приватный):** https://github.com/r9549684-dev/safenet-service/releases/download/v1.3.1/SafeNet-v1.3.1.apk
 **Актуальная публичная ссылка:** https://api.loveaibot.net/download/app
 **Версия на сервере (`GET /app/version`):** `{"version":"1.3.1","version_code":4}`
 
@@ -723,7 +723,7 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 При переподключении активного пира `peer-limit.sh` пересоздавал TC-класс, вызывая кратковременный packet loss.
 
 **Исправление 2:**
-- Файл: `backend/app/api/vpn.py`
+- Файл: `backend/app/api/service.py`
 - Добавлен флаг `peer_was_active` (проверяет `is_active` до вызова connect)
 - Если пир уже был активен — `apply_speed_limit` пропускается (TC не трогается)
 

@@ -6,7 +6,7 @@ class Endpoints {
   // Servers
   static const servers            = '/servers';
   static const recommendedServer  = '/servers/recommended';
-  static String connectServer(String id) => '/vpn/connect/$id';
+  static String connectServer(String id) => '/service/connect/$id';
 
   // Subscriptions
   static String pricing([String country = '']) =>

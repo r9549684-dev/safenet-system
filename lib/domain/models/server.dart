@@ -69,27 +69,12 @@ class VpnServer {
   /// Совместимость с UI: пинг в мс
   int get ping => latencyMs ?? 0;
 
-  /// Совместимость с UI: режим VPN
+  /// Совместимость с UI: режим service
   String get mode => serverType;
 
   /// Совместимость с UI: город (fallback на страну)
   String get cityLabel => city ?? country;
 
-  static const defaults = [
-    VpnServer(
-      id: '3', name: 'AE-1', country: 'AE',
-      city: 'Dubai', serverType: 'AmneziaWG',
-      load: 35, latencyMs: 31, isActive: true,
-    ),
-    VpnServer(
-      id: '1', name: 'TR-1', country: 'TR',
-      city: 'Istanbul', serverType: 'ByeDPI',
-      load: 42, latencyMs: 24, isActive: true,
-    ),
-    VpnServer(
-      id: '2', name: 'EG-1', country: 'EG',
-      city: 'Cairo', serverType: 'AmneziaWG',
-      load: 61, latencyMs: 38, isActive: true,
-    ),
-  ];
+  // Жестко заданные списки серверов УДАЛЕНЫ.
+  // Используйте ServerProvider для получения актуального списка из API/БД.
 }
