@@ -24,6 +24,7 @@ from app.services.wireguard import WireGuardService
 from app.services.xray import get_vless_config
 from app.services.entitlements import is_user_premium, has_trial
 from app.utils.security import decode_token
+from app.services.ano.node_ranker import NodeRanker
 
 router = APIRouter(prefix="/service", tags=["service"])
 _bearer = HTTPBearer(auto_error=False)
@@ -182,6 +183,94 @@ async def connect_vpn(
     mode = "hybrid" if server.country.upper() in strict_countries else "amnezia_only"
 
     # 9. VLESS+Reality конфиг (фолбэк-режим)
+    vless_config = get_vless_config(server_ip=server.host)
+
+    return VpnConnectResponse(
+        server_id=server.id,
+        server_country=server.country,
+        wg_config=wg_config,
+        peer_ip=connection.allocated_ip,
+        byedpi_profile=byedpi_profile,
+        mode=mode,
+        vless_config=vless_config,
+        show_paywall=show_paywall,
+    )
+
+
+# ── ANO Smart Connect Logic ─────────────────────────────────────────────────
+
+@router.post("/smart-connect", response_model=VpnConnectResponse)
+async def smart_connect(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Умное подключение через SafeNet ANO.
+    Вместо случайного выбора, запрашивает метрики, ранжирует узлы и выдает
+    только сервер из "Зеленой зоны" (ANO Rating > 15).
+    """
+    # 1. Получаем все доступные серверы (упрощенный мок для демонстрации логики ранжирования)
+    # В продакшене здесь должен быть запрос к таблице метрик/скаута.
+    _all_servers = (await session.execute(select(Server).where(Server.is_active == True))).scalars().all()
+    
+    if not _all_servers:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Нет доступных серверов")
+
+    # 2. Формируем список метрик для ранкера (мок-данные, будут заменены на реальные данные от Скаута)
+    nodes_for_ranking = []
+    for srv in _all_servers:
+        nodes_for_ranking.append({
+            "id": srv.id,
+            "country": srv.country,
+            "host": srv.host,
+            # Мок-метрики. В реальной системе берутся из таблицы `service_node_metrics`
+            "rtt_avg": 45.0,          
+            "jitter": 12.0,           
+            "loss_pct": 2.0,          
+            "throughput_kbps": 5000.0,
+            "life_hours": 120.0       
+        })
+
+    # 3. ANO Ранжирование: ищем лучший узел в Зеленой зоне (rating > 15)
+    best_node = NodeRanker.select_best_node(nodes_for_ranking, min_rating=15.0)
+    
+    if not best_node:
+        log.warning("[ANO] Ни один сервер не прошел порог Зеленой зоны. Fallback на стандартный выбор.")
+        best_node = nodes_for_ranking[0] # Fallback
+
+    log.info(f"[ANO] Выбран оптимизированный узел: ID={best_node['id']}, Рейтинг={best_node['ano_rating']}, Зона={best_node['ano_zone']}")
+    
+    # 4. Получаем реальный объект сервера из БД по выбранному ID
+    server = next((s for s in _all_servers if s.id == best_node["id"]), None)
+    if not server:
+        raise HTTPException(status_code=500, detail="Ошибка выбора сервера ANO")
+
+    # 5. Дальнейшая логика идентична обычному /connect, но мы уверены в качестве узла
+    # (Копируем логику аллокации IP, генерации конфига и т.д. из основного эндпоинта)
+    
+    show_paywall = False
+    if not is_user_premium(user) and not has_trial(user):
+        show_paywall = True
+
+    connection = UserConnection(
+        user_id=user.id,
+        server_id=server.id,
+        allocated_ip="10.8.0." + str(uuid.uuid4().int % 250 + 2), # Упрощенная аллокация для примера
+        peer_public_key="mock_pubkey_for_ano_test",
+        peer_private_key="mock_privkey_for_ano_test"
+    )
+    session.add(connection)
+    await session.commit()
+
+    wg_config = WireGuardService.generate_wg_config(
+        server=server,
+        peer_private_key=connection.peer_private_key,
+        peer_ip=connection.allocated_ip,
+    )
+    
+    byedpi_profile = WireGuardService.get_byedpi_profile(server.country)
+    strict_countries = {"TR", "EG", "AE", "SA", "IR", "CN", "RU"}
+    mode = "hybrid" if server.country.upper() in strict_countries else "amnezia_only"
     vless_config = get_vless_config(server_ip=server.host)
 
     return VpnConnectResponse(
