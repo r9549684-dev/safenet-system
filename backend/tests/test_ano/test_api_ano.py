@@ -7,8 +7,8 @@ from fastapi import FastAPI
 
 # Прямой импорт модуля в обход app.api.__init__.py (чтобы избежать ошибки sqlalchemy)
 spec = importlib.util.spec_from_file_location(
-    "ano_api", 
-    "app/api/ano.py"
+    "ano_api",
+    "backend/app/api/ano.py"
 )
 ano_api = importlib.util.module_from_spec(spec)
 sys.modules["ano_api"] = ano_api

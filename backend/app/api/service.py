@@ -64,7 +64,7 @@ class VpnPoolResponse(BaseModel):
 
 class ReportBlockedRequest(BaseModel):
     """Запрос на отчет о блокировке конфига."""
-    peer_public_key: str
+    allocated_ip: str
 
 
 # ── Auth dependency ────────────────────────────────────────────────────────────
@@ -500,7 +500,7 @@ async def report_blocked_config(
     conn = (await session.execute(
         select(UserConnection).where(
             UserConnection.user_id == user.id,
-            UserConnection.peer_public_key == req.peer_public_key,
+            UserConnection.allocated_ip == req.allocated_ip,
             UserConnection.status.in_([ConnectionStatus.ACTIVE, ConnectionStatus.STANDBY])
         )
     )).scalar_one_or_none()
@@ -508,7 +508,7 @@ async def report_blocked_config(
     if conn:
         conn.status = ConnectionStatus.REVOKED
         await session.commit()
-        log.info(f"[AMO] Конфиг {req.peer_public_key[:8]}... помечен как REVOKED для пользователя {user.id}")
+        log.info(f"[AMO] Конфиг с IP {req.allocated_ip} помечен как REVOKED для пользователя {user.id}")
         
         background_tasks.add_task(heal_pool_task, user.id)
         return {"status": "revoked", "healing_initiated": True}

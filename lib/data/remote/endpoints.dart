@@ -39,4 +39,8 @@ class Endpoints {
   static String configConsume(String token, String country) =>
       '/config/consume/$token?country=$country';
   static const configRotate = '/config/rotate';
+
+  // SafeNet AMO: Seamless Failover Pool
+  static const connectionPool = '/service/pool';
+  static const reportBlocked  = '/service/report-blocked';
 }

@@ -28,4 +28,20 @@ class ServerRepository {
       data: {'code': code.trim().toUpperCase()},
     );
   }
+
+  // ── SafeNet AMO: Seamless Failover ──────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> getConnectionPool() async {
+    final data = await _api.post<List>(Endpoints.connectionPool);
+    return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<bool> reportBlockedConfig(String allocatedIp) async {
+    try {
+      await _api.post(Endpoints.reportBlocked, data: {'allocated_ip': allocatedIp});
+      return true;
+    } catch (_) {
+      return false; // Fire-and-forget, не критично если не отправилось
+    }
+  }
 }

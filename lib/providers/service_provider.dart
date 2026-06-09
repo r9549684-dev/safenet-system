@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../data/repositories/server_repo.dart';
@@ -6,6 +7,7 @@ import '../data/local/secure_storage.dart';
 import '../domain/models/server_model.dart';
 import '../domain/enums/vpn_status.dart';
 import '../services/vpn_service.dart';
+import '../services/amo_pool_service.dart';
 import '../core/singbox_vpn.dart';
 import '../core/config_cache_service.dart';
 import '../core/constants.dart';
@@ -15,6 +17,7 @@ import '../core/constants.dart';
 class VpnProvider extends ChangeNotifier {
   final _repo    = ServerRepository();
   final _service = VPNService();
+  final _amoPool = AmoPoolService();
 
   VpnStatus     _status   = VpnStatus.disconnected;
   ServerModel?  _selected;
@@ -26,6 +29,7 @@ class VpnProvider extends ChangeNotifier {
   String?     _proxyAddress;
   bool        _isLoadingServers = false;
   bool        _usingSingbox = false;
+  String?     _currentWgConfig; // Для извлечения allocated_ip при блокировке
 
   // Traffic stats
   double _rxSpeed = 0;
@@ -34,6 +38,7 @@ class VpnProvider extends ChangeNotifier {
   int    _lastTxBytes = 0;
   int    _pingMs = 0;
   int    _pingTick = 0;
+  int    _failedPings = 0; // Для детекта блокировки
 
   // Session access control
   bool _isUnlimitedSession = false;  // true — premium/active trial, false — post-trial free
@@ -149,24 +154,51 @@ class VpnProvider extends ChangeNotifier {
         return;
       }
 
-      // Получить WG-конфиг с сервера (или из кэша при ошибке сети)
+      // SafeNet AMO: Пытаемся получить пул конфигов для бесшовного фэйловера
       var wgConfig    = '';
       var showPaywall = false;
+      var fetchedFromPool = false;
+
       try {
-        final cfg = await _repo.connect(_selected!.id);
-        wgConfig    = cfg['wg_config'] as String? ?? '';
-        showPaywall = cfg['show_paywall'] == true;
-        // Сохраняем в кэш для будущих offline-подключений
-        if (wgConfig.isNotEmpty) {
-          ConfigCacheService.saveWgCache(_selected!.id, wgConfig);
+        final pool = await _amoPool.refreshPool();
+        if (pool != null && pool.isNotEmpty) {
+          final activeConfig = pool.firstWhere(
+            (c) => c['status'] == 'ACTIVE',
+            orElse: () => pool.first,
+          );
+          wgConfig = activeConfig['wg_config'] as String? ?? '';
+          showPaywall = activeConfig['show_paywall'] == true;
+          fetchedFromPool = true;
+          
+          // Находим соответствующий сервер в нашем списке
+          final serverId = activeConfig['server_id'] as int;
+          _selected = _servers.firstWhere(
+            (s) => s.id == serverId,
+            orElse: () => _selected ?? _servers.first,
+          );
         }
       } catch (_) {
-        // Нет сети — пробуем последний рабочий конфиг из кэша
-        final cached = await ConfigCacheService.getWgCache(_selected!.id);
-        if (cached == null || cached.isEmpty) rethrow;
-        wgConfig    = cached;
-        showPaywall = false;
+        print('[AMO] Не удалось получить пул, используем фоллбэк на одиночный конфиг');
       }
+
+      // Фоллбэк: классический запрос одиночного конфига
+      if (!fetchedFromPool) {
+        try {
+          final cfg = await _repo.connect(_selected!.id);
+          wgConfig    = cfg['wg_config'] as String? ?? '';
+          showPaywall = cfg['show_paywall'] == true;
+          if (wgConfig.isNotEmpty) {
+            ConfigCacheService.saveWgCache(_selected!.id, wgConfig);
+          }
+        } catch (_) {
+          final cached = await ConfigCacheService.getWgCache(_selected!.id);
+          if (cached == null || cached.isEmpty) rethrow;
+          wgConfig    = cached;
+          showPaywall = false;
+        }
+      }
+
+      _currentWgConfig = wgConfig; // Сохраняем для детекта блокировки
       final country = countryCode ?? _selected!.country;
 
       // Подключиться через StealthVPNService (режим по выбору пользователя)
@@ -281,7 +313,7 @@ class VpnProvider extends ChangeNotifier {
         // Измеряем пинг каждые 10 секунд
         _pingTick++;
         if (_pingTick % 10 == 1) {
-          _measurePing();
+          await _measurePing();
         }
         notifyListeners();
         return true;
@@ -297,9 +329,72 @@ class VpnProvider extends ChangeNotifier {
       await InternetAddress.lookup('google.com');
       sw.stop();
       _pingMs = sw.elapsedMilliseconds;
+      _failedPings = 0; // Успешный пинг, сброс счетчика сбоев
     } catch (_) {
       _pingMs = 0;
+      _failedPings++;
+      if (_failedPings >= 3) {
+        await _triggerSeamlessFailover();
+      }
     }
+  }
+
+  /// Бесшовный фэйловер при обнаружении блокировки
+  Future<void> _triggerSeamlessFailover() async {
+    print('[AMO] ⚡ Обнаружено 3 неудачных пинга подряд. Инициирую бесшовный фэйловер...');
+    _failedPings = 0; // Сброс счетчика для предотвращения многократного триггера
+
+    // 1. Сообщаем бэкенду о блокировке (fire-and-forget, чтобы не блокировать клиента)
+    if (_currentWgConfig != null && _currentWgConfig!.isNotEmpty) {
+      final allocatedIp = AmoPoolService.extractAllocatedIp(_currentWgConfig!);
+      if (allocatedIp != null) {
+        unawaited(_amoPool.reportAndHeal(allocatedIp));
+      }
+    }
+
+    // 2. Получаем следующий STANDBY конфиг из локального кэша пула
+    final currentServerId = _selected?.id ?? 0;
+    final nextConfig = _amoPool.getNextStandbyConfig(currentServerId);
+
+    if (nextConfig != null) {
+      final newWgConfig = nextConfig['wg_config'] as String?;
+      if (newWgConfig != null && newWgConfig.isNotEmpty) {
+        print('[AMO] 🔄 Переключаюсь на резервный конфиг (Server ID: ${nextConfig['server_id']})');
+        _currentWgConfig = newWgConfig;
+        
+        // Находим новый сервер в локальном списке
+        final newServerId = nextConfig['server_id'] as int;
+        _selected = _servers.firstWhere(
+          (s) => s.id == newServerId,
+          orElse: () => _selected ?? _servers.first,
+        );
+
+        // 3. Инициируем переподключение поверх текущего (Seamless)
+        try {
+          final country = _selected?.country ?? 'IR';
+          final result = await _service.connectAuto(
+            wgConfig: newWgConfig,
+            countryCode: country,
+          );
+          _proxyAddress = result.proxyAddress;
+          _active = _selected; // Обновляем активный сервер в UI
+          _pingMs = 0; // Сброс пинга для немедленного нового замера
+          
+          print('[AMO] ✅ Бесшовный фэйловер успешен.');
+          notifyListeners();
+        } catch (e) {
+          print('[AMO] ❌ Ошибка при фэйловере: $e');
+          _status = VpnStatus.error;
+          _error = 'Не удалось переключиться на резервный сервер: $e';
+          notifyListeners();
+        }
+        return;
+      }
+    }
+    
+    print('[AMO] ⚠️ Резервный конфиг не найден в пуле. Фэйловер невозможен.');
+    // Если резерва нет, мы ничего не делаем. При полном обрыве связь просто пропадет,
+    // и пользователь увидит это по отсутствию трафика или при ручной проверке.
   }
 
   /// Автоотключение по истечению 5-минутной post-trial сессии.
