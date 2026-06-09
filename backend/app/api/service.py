@@ -7,9 +7,9 @@ POST /service/connect/{server_id}
 import uuid
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -19,7 +19,7 @@ from app.database import get_session
 log = logging.getLogger(__name__)
 from app.models.server import Server
 from app.models.user import User
-from app.models.connection import UserConnection
+from app.models.connection import UserConnection, ConnectionStatus
 from app.models.node_metrics import NodeMetrics
 from app.services.wireguard import WireGuardService
 from app.services.xray import get_vless_config
@@ -42,6 +42,29 @@ class VpnConnectResponse(BaseModel):
     mode: str  # "hybrid" | "amnezia_only"
     vless_config: dict[str, Any]
     show_paywall: bool = False  # true на 2-м, 4-м... подключении после истечения триала
+    status: str = "ACTIVE" # Для обратной совместимости
+
+
+class VpnConfigItem(BaseModel):
+    """Элемент пула конфигов для бесшовного фэйловера."""
+    server_id: int
+    server_country: str
+    wg_config: str
+    peer_ip: str
+    byedpi_profile: dict[str, Any]
+    mode: str
+    vless_config: dict[str, Any]
+    status: str  # ACTIVE или STANDBY
+
+
+class VpnPoolResponse(BaseModel):
+    """Ответ эндпоинта пула конфигов (до 3 шт.)."""
+    configs: List[VpnConfigItem]
+
+
+class ReportBlockedRequest(BaseModel):
+    """Запрос на отчет о блокировке конфига."""
+    peer_public_key: str
 
 
 # ── Auth dependency ────────────────────────────────────────────────────────────
@@ -132,14 +155,14 @@ async def connect_vpn(
             peer_private_key=private_key,
             peer_public_key=public_key,
             allocated_ip=peer_ip,
-            is_active=True,
+            status=ConnectionStatus.ACTIVE,
             created_at=datetime.utcnow(),
         )
         session.add(connection)
     else:
         # Переиспользуем существующую запись (IP и ключи не меняем, просто реактивируем)
-        peer_was_active = connection.is_active  # запоминаем статус ДО реактивации
-        connection.is_active = True
+        peer_was_active = (connection.status == ConnectionStatus.ACTIVE)  # запоминаем статус ДО реактивации
+        connection.status = ConnectionStatus.ACTIVE
 
     # 4. Обновляем время последнего использования (это старт сессии для watchdog'а)
     connection.last_used_at = datetime.utcnow()
@@ -272,13 +295,13 @@ async def smart_connect(
             peer_private_key=private_key,
             peer_public_key=public_key,
             allocated_ip=peer_ip,
-            is_active=True,
+            status=ConnectionStatus.ACTIVE,
             created_at=datetime.utcnow(),
         )
         session.add(connection)
     else:
-        peer_was_active = connection.is_active
-        connection.is_active = True
+        peer_was_active = (connection.status == ConnectionStatus.ACTIVE)
+        connection.status = ConnectionStatus.ACTIVE
 
     connection.last_used_at = datetime.utcnow()
     
@@ -323,3 +346,229 @@ async def smart_connect(
         vless_config=vless_config,
         show_paywall=show_paywall,
     )
+
+
+# ── SafeNet AMO: Seamless Failover & Pool Management ────────────────────────
+
+async def _build_config_item(
+    session: AsyncSession, 
+    user: User, 
+    server: Server, 
+    target_status: ConnectionStatus = ConnectionStatus.STANDBY
+) -> VpnConfigItem:
+    """Вспомогательная функция для генерации элемента пула конфигов."""
+    private_key, public_key = WireGuardService.generate_keypair()
+    peer_ip = await WireGuardService.allocate_ip(session, server.id)
+    
+    connection = UserConnection(
+        user_id=user.id,
+        server_id=server.id,
+        peer_private_key=private_key,
+        peer_public_key=public_key,
+        allocated_ip=peer_ip,
+        status=target_status,
+        created_at=datetime.utcnow(),
+    )
+    session.add(connection)
+    await session.commit()
+
+    # Регистрируем пир и применяем лимиты (только для нового подключения)
+    await WireGuardService.add_peer_to_server(pubkey=public_key, ip=peer_ip)
+    tier = "premium" if is_user_premium(user) else "trial"
+    await WireGuardService.apply_speed_limit(peer_ip=peer_ip, tier=tier)
+
+    wg_config = WireGuardService.generate_wg_config(
+        server=server,
+        peer_private_key=private_key,
+        peer_ip=peer_ip,
+    )
+    
+    byedpi_profile = WireGuardService.get_byedpi_profile(server.country)
+    strict_countries = {"TR", "EG", "AE", "SA", "IR", "CN", "RU"}
+    mode = "hybrid" if server.country.upper() in strict_countries else "amnezia_only"
+    vless_config = get_vless_config(server_ip=server.host)
+
+    return VpnConfigItem(
+        server_id=server.id,
+        server_country=server.country,
+        wg_config=wg_config,
+        peer_ip=peer_ip,
+        byedpi_profile=byedpi_profile,
+        mode=mode,
+        vless_config=vless_config,
+        status=target_status.value,
+    )
+
+
+@router.post("/pool", response_model=VpnPoolResponse)
+async def get_connection_pool(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    SafeNet AMO: Возвращает пул конфигураций для пользователя (1 ACTIVE + до 2 STANDBY).
+    Если пул неполный, генерирует недостающие конфиги через NodeRanker.
+    """
+    # 1. Получаем текущие активные и резервные конфиги пользователя
+    existing_conns = (await session.execute(
+        select(UserConnection).where(
+            UserConnection.user_id == user.id,
+            UserConnection.status.in_([ConnectionStatus.ACTIVE, ConnectionStatus.STANDBY])
+        )
+    )).scalars().all()
+
+    existing_server_ids = {conn.server_id for conn in existing_conns}
+    
+    configs = []
+    for conn in existing_conns:
+        server = (await session.execute(select(Server).where(Server.id == conn.server_id))).scalar_one()
+        wg_config = WireGuardService.generate_wg_config(
+            server=server,
+            peer_private_key=conn.peer_private_key,
+            peer_ip=conn.allocated_ip,
+        )
+        strict_countries = {"TR", "EG", "AE", "SA", "IR", "CN", "RU"}
+        mode = "hybrid" if server.country.upper() in strict_countries else "amnezia_only"
+        
+        configs.append(VpnConfigItem(
+            server_id=server.id,
+            server_country=server.country,
+            wg_config=wg_config,
+            peer_ip=conn.allocated_ip,
+            byedpi_profile=WireGuardService.get_byedpi_profile(server.country),
+            mode=mode,
+            vless_config=get_vless_config(server_ip=server.host),
+            status=conn.status.value,
+        ))
+
+    # 2. Если конфигов меньше 3, добираем через NodeRanker
+    while len(configs) < 3:
+        all_servers = (await session.execute(select(Server).where(Server.is_active == True))).scalars().all()
+        if not all_servers:
+            break
+            
+        nodes_for_ranking = []
+        for srv in all_servers:
+            if srv.id in existing_server_ids:
+                continue
+                
+            metrics = (await session.execute(
+                select(NodeMetrics).where(NodeMetrics.server_id == srv.id)
+            )).scalar_one_or_none()
+            
+            nodes_for_ranking.append({
+                "id": srv.id,
+                "rtt_avg": float(metrics.rtt_avg) if metrics else 999.0,
+                "jitter": float(metrics.jitter) if metrics else 100.0,
+                "loss_pct": float(metrics.loss_pct) if metrics else 50.0,
+                "throughput_kbps": float(metrics.throughput_kbps) if metrics else 10.0,
+                "life_hours": float(metrics.life_hours) if metrics else 1.0
+            })
+
+        best_node = NodeRanker.select_best_node(nodes_for_ranking, min_rating=5.0)
+        
+        if not best_node:
+            log.warning("[AMO] Не найдено подходящих серверов для пополнения пула.")
+            break
+            
+        best_server = next((s for s in all_servers if s.id == best_node["id"]), None)
+        if best_server:
+            log.info(f"[AMO] Генерация STANDBY конфига для сервера {best_server.id} (Rating: {best_node.get('ano_rating', 'N/A')})")
+            new_config = await _build_config_item(session, user, best_server, ConnectionStatus.STANDBY)
+            configs.append(new_config)
+            existing_server_ids.add(best_server.id)
+        else:
+            break
+
+    if configs and not any(c.status == "ACTIVE" for c in configs):
+        configs[0].status = "ACTIVE"
+
+    return VpnPoolResponse(configs=configs)
+
+
+@router.post("/report-blocked")
+async def report_blocked_config(
+    req: ReportBlockedRequest,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    SafeNet AMO: Клиент сообщает о блокировке конфига.
+    Мгновенно помечает его как REVOKED и асинхронно запускает исцеление пула.
+    """
+    conn = (await session.execute(
+        select(UserConnection).where(
+            UserConnection.user_id == user.id,
+            UserConnection.peer_public_key == req.peer_public_key,
+            UserConnection.status.in_([ConnectionStatus.ACTIVE, ConnectionStatus.STANDBY])
+        )
+    )).scalar_one_or_none()
+
+    if conn:
+        conn.status = ConnectionStatus.REVOKED
+        await session.commit()
+        log.info(f"[AMO] Конфиг {req.peer_public_key[:8]}... помечен как REVOKED для пользователя {user.id}")
+        
+        background_tasks.add_task(heal_pool_task, user.id)
+        return {"status": "revoked", "healing_initiated": True}
+    
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Config not found or already revoked")
+
+
+async def heal_pool_task(user_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    """
+    Фоновая задача SafeNet AMO: Восполняет пул конфигов до 3 штук после блокировки.
+    """
+    log.info(f"[AMO HEALER] Запуск исцеления пула для пользователя {user_id}")
+    try:
+        user = (await session.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+        if not user:
+            return
+
+        existing_conns = (await session.execute(
+            select(UserConnection).where(
+                UserConnection.user_id == user_id,
+                UserConnection.status.in_([ConnectionStatus.ACTIVE, ConnectionStatus.STANDBY])
+            )
+        )).scalars().all()
+
+        slots_to_fill = 3 - len(existing_conns)
+        if slots_to_fill <= 0:
+            log.info(f"[AMO HEALER] Пул пользователя {user_id} уже полон ({len(existing_conns)}). Пропуск.")
+            return
+
+        existing_server_ids = {conn.server_id for conn in existing_conns}
+        all_servers = (await session.execute(select(Server).where(Server.is_active == True))).scalars().all()
+        
+        for _ in range(slots_to_fill):
+            nodes_for_ranking = []
+            for srv in all_servers:
+                if srv.id in existing_server_ids:
+                    continue
+                metrics = (await session.execute(
+                    select(NodeMetrics).where(NodeMetrics.server_id == srv.id)
+                )).scalar_one_or_none()
+                
+                nodes_for_ranking.append({
+                    "id": srv.id,
+                    "rtt_avg": float(metrics.rtt_avg) if metrics else 999.0,
+                    "jitter": float(metrics.jitter) if metrics else 100.0,
+                    "loss_pct": float(metrics.loss_pct) if metrics else 50.0,
+                    "throughput_kbps": float(metrics.throughput_kbps) if metrics else 10.0,
+                    "life_hours": float(metrics.life_hours) if metrics else 1.0
+                })
+
+            best_node = NodeRanker.select_best_node(nodes_for_ranking, min_rating=5.0)
+            if not best_node:
+                log.warning(f"[AMO HEALER] Нет подходящих серверов для пользователя {user_id}")
+                break
+                
+            best_server = next((s for s in all_servers if s.id == best_node["id"]), None)
+            if best_server:
+                log.info(f"[AMO HEALER] Создание нового STANDBY конфига на сервере {best_server.id}")
+                await _build_config_item(session, user, best_server, ConnectionStatus.STANDBY)
+                existing_server_ids.add(best_server.id)
+                
+    except Exception as e:
+        log.error(f"[AMO HEALER] Ошибка исцеления пула для {user_id}: {e}", exc_info=True)
