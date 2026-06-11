@@ -308,18 +308,20 @@ async def get_stats(
 
     return {
         "generated_at": now.isoformat(),
-        "users": {
+        "users_summary": {
             "total":        total,
             "trial_active": trial_active,
-            "premium":      premium,
-            "premium_paid":  premium_paid,
-            "premium_promo": premium_promo,
             "expired":      expired,
         },
-        "by_country": dict(sorted(countries.items(), key=lambda x: -x[1]["total"])),
+        "paying_customers": {
+            "total_premium": premium,
+            "paid_subscribers": premium_paid,
+            "promo_granted": premium_promo,
+        },
         "revenue": {
             "wallet_balance":  cryptobot_balance if cryptobot_balance else {"USDT": 0, "TON": 0},
-            "total_received":  cryptobot_paid_total,
+            "total_received":  round(cryptobot_paid_total, 2),
             "paid_invoices":   cryptobot_paid_count,
         },
+        "by_country": dict(sorted(countries.items(), key=lambda x: -x[1]["total"])),
     }

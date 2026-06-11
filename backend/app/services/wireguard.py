@@ -106,7 +106,7 @@ class WireGuardService:
         result = await session.execute(
             select(UserConnection.allocated_ip).where(
                 UserConnection.server_id == server_id,
-                UserConnection.is_active == True,
+                UserConnection.status == 'ACTIVE',
             )
         )
         used_ips = set(result.scalars().all())

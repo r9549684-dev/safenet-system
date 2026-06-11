@@ -17,7 +17,7 @@ from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from app.config import settings
-from app.models.connection import UserConnection
+from app.models.connection import UserConnection, ConnectionStatus
 from app.models.user import User
 from app.services.wireguard import WireGuardService
 
@@ -36,7 +36,7 @@ async def _run_cycle(session: AsyncSession) -> None:
         .join(User, UserConnection.user_id == User.id)
         .where(
             and_(
-                UserConnection.is_active == True,
+                UserConnection.status == ConnectionStatus.ACTIVE,
                 User.is_premium == False,
                 User.trial_ends_at < datetime.utcnow(),
                 UserConnection.last_used_at.is_not(None),
@@ -54,7 +54,7 @@ async def _run_cycle(session: AsyncSession) -> None:
     for conn, user in rows:
         try:
             await WireGuardService.remove_peer_from_server(conn.peer_public_key)
-            conn.is_active = False
+            conn.status = ConnectionStatus.REVOKED
             log.info(
                 "[WATCHDOG] Отключён: device=%s ip=%s server_id=%s",
                 user.device_id,
