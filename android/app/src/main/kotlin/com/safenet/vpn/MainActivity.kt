@@ -36,6 +36,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        Log.i(TAG, "configureFlutterEngine called - SafeNet VPN initializing")
 
         // ── Hiddify Installer Channel ────────────────────────────────────
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, INSTALLER_CHANNEL)
@@ -165,13 +166,16 @@ class MainActivity : FlutterActivity() {
                     }
 
                     "getAndroidId" -> {
+                        Log.i(TAG, "getAndroidId method called from Dart")
                         try {
                             val androidId = Settings.Secure.getString(
                                 contentResolver,
                                 Settings.Secure.ANDROID_ID
                             ) ?: ""
+                            Log.i(TAG, "Returning Android ID: $androidId")
                             result.success(androidId)
                         } catch (e: Exception) {
+                            Log.e(TAG, "Error getting Android ID", e)
                             result.error("ANDROID_ID_ERROR", e.message, null)
                         }
                     }

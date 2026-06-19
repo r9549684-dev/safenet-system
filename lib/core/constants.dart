@@ -1,6 +1,7 @@
 class AppConstants {
   // API
-  static const String apiBaseUrl = 'http://89.208.107.67:8500';
+  // All-in-One MVP VPS (38.180.253.219)
+  static const String apiBaseUrl = 'http://38.180.253.219:8000';
   static const Duration connectTimeout = Duration(seconds: 12);
   static const Duration receiveTimeout = Duration(seconds: 15);
 
@@ -36,6 +37,6 @@ class AppConstants {
     'VE': {'monthly': 1.99, 'yearly': 19.99},
   };
 
-  // service Channel (com.safenet.service/methods — по документу)
-  static const String vpnMethodChannel = 'com.safenet.service/methods';
+  // service Channel
+  static const String vpnMethodChannel = 'com.safenet.vpn/methods';
 }

@@ -6,7 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/theme.dart';
 import 'l10n/app_localizations.dart';
 import 'providers/auth_provider.dart';
-import 'providers/vpn_provider.dart';
+import 'providers/service_provider.dart';
 import 'providers/subscription_provider.dart';
 import 'providers/affiliate_provider.dart';
 import 'screens/splash_screen.dart';

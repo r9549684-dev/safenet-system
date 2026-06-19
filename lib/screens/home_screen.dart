@@ -7,11 +7,11 @@ import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../config/theme.dart';
 import '../l10n/app_localizations.dart';
-import '../domain/enums/vpn_status.dart';
+import '../domain/enums/service_status.dart';
 import '../domain/models/server_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/subscription_provider.dart';
-import '../providers/vpn_provider.dart';
+import '../providers/service_provider.dart';
 import '../providers/affiliate_provider.dart';
 import '../data/local/secure_storage.dart';
 import '../data/repositories/server_repo.dart';
@@ -20,7 +20,7 @@ import 'splash_screen.dart';
 import 'affiliate_screen.dart';
 import 'support_screen.dart';
 import '../services/update_checker.dart';
-import '../core/singbox_vpn.dart' show SingboxVpn, bundleSingbox;
+import '../core/singbox_service.dart' show SingboxVpn, bundleSingbox;
 import '../core/pricing_service.dart';
 
 class HomeScreen extends StatefulWidget {

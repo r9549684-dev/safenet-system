@@ -5,10 +5,10 @@ import '../data/repositories/server_repo.dart';
 import '../data/repositories/auth_repo.dart';
 import '../data/local/secure_storage.dart';
 import '../domain/models/server_model.dart';
-import '../domain/enums/vpn_status.dart';
-import '../services/vpn_service.dart';
+import '../domain/enums/service_status.dart';
+import '../services/service_service.dart';
 import '../services/amo_pool_service.dart';
-import '../core/singbox_vpn.dart';
+import '../core/singbox_service.dart';
 import '../core/config_cache_service.dart';
 import '../core/constants.dart';
 
@@ -353,7 +353,7 @@ class VpnProvider extends ChangeNotifier {
     }
 
     // 2. Получаем следующий STANDBY конфиг из локального кэша пула
-    final currentServerId = _selected?.id ?? 0;
+    final currentServerId = int.tryParse(_selected?.id ?? '0') ?? 0;
     final nextConfig = _amoPool.getNextStandbyConfig(currentServerId);
 
     if (nextConfig != null) {

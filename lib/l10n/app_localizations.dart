@@ -100,7 +100,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'SafeNet service'**
+  /// **'SafeNet VPN'**
   String get appName;
 
   /// No description provided for @splashTagline.
@@ -118,7 +118,7 @@ abstract class AppLocalizations {
   /// No description provided for @onb1Title.
   ///
   /// In en, this message translates to:
-  /// **'SafeNet service'**
+  /// **'SafeNet VPN'**
   String get onb1Title;
 
   /// No description provided for @onb1Sub.
@@ -544,7 +544,7 @@ abstract class AppLocalizations {
   /// No description provided for @sectionVpn.
   ///
   /// In en, this message translates to:
-  /// **'service Settings'**
+  /// **'VPN Settings'**
   String get sectionVpn;
 
   /// No description provided for @killSwitchDesc.
@@ -718,7 +718,7 @@ abstract class AppLocalizations {
   /// No description provided for @discountCardTitle.
   ///
   /// In en, this message translates to:
-  /// **'service at 50% price'**
+  /// **'VPN at 50% price'**
   String get discountCardTitle;
 
   /// No description provided for @discountCardHeader.
@@ -1024,7 +1024,7 @@ abstract class AppLocalizations {
   /// No description provided for @sectionServer.
   ///
   /// In en, this message translates to:
-  /// **'service Profile'**
+  /// **'VPN Profile'**
   String get sectionServer;
 
   /// No description provided for @serverCardDesc.

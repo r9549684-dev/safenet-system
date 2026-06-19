@@ -9,7 +9,7 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
-  String get appName => 'SafeNet service';
+  String get appName => 'SafeNet VPN';
 
   @override
   String get splashTagline => 'Безопасно. Приватно. Бесплатно.';
@@ -18,7 +18,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chooseLanguage => 'Выберите язык';
 
   @override
-  String get onb1Title => 'SafeNet service';
+  String get onb1Title => 'SafeNet VPN';
 
   @override
   String get onb1Sub => 'Обходите цензуру в ОАЭ, Турции и других странах — незаметно.';
@@ -241,7 +241,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get expiryLabel => 'Истекает';
 
   @override
-  String get sectionVpn => 'service Параметры';
+  String get sectionVpn => 'VPN Параметры';
 
   @override
   String get killSwitchDesc => 'Твой IP не засветится при обрыве';
@@ -328,7 +328,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get codeCopied => 'Код скопирован';
 
   @override
-  String get discountCardTitle => 'сервис за 50% цены';
+  String get discountCardTitle => 'ВПН за 50% цены';
 
   @override
   String get discountCardHeader => '👥 Подключи друга';
@@ -485,7 +485,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeInviteTitle => '👥 Подключи друга — плати полцены';
 
   @override
-  String get sectionServer => 'ПРОФИЛЬ service';
+  String get sectionServer => 'ПРОФИЛЬ VPN';
 
   @override
   String get serverCardDesc => 'Нажмите чтобы сменить сервер';

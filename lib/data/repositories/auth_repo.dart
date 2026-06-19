@@ -14,20 +14,31 @@ class AuthRepository {
 
   Future<String> getOrCreateDeviceId() async {
     try {
+      print('[AUTH_REPO] getOrCreateDeviceId started');
       // 1. Возвращаем сохранённый ID (backward-compatible для уже установленных)
       final saved = await SecureStorage.getDeviceId();
-      if (saved != null && saved.isNotEmpty) return saved;
+      print('[AUTH_REPO] saved deviceId = $saved');
+      if (saved != null && saved.isNotEmpty) {
+        print('[AUTH_REPO] returning saved deviceId');
+        return saved;
+      }
 
       // 2. Android: берём ANDROID_ID — аппаратный ID, переживает переустановку
       //    (меняется только при factory reset или смене пользователя)
+      print('[AUTH_REPO] saved is null/empty, checking Platform.isAndroid');
       if (Platform.isAndroid) {
+        print('[AUTH_REPO] calling getAndroidId MethodChannel');
         try {
           final androidId = await _channel.invokeMethod<String>('getAndroidId');
+          print('[AUTH_REPO] got androidId = $androidId');
           if (androidId != null && androidId.isNotEmpty && androidId != '0000000000000000') {
             try { await SecureStorage.saveDeviceId(androidId); } on PlatformException { /* ignore */ }
             return androidId;
           }
-        } on PlatformException { /* fall through */ }
+        } on PlatformException catch (e) {
+          print('[AUTH_REPO] PlatformException getting androidId: $e');
+          /* fall through */
+        }
       }
 
       // 3. Fallback (iOS / ANDROID_ID недоступен): случайный UUID

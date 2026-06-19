@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'SafeNet service';
+  String get appName => 'SafeNet VPN';
 
   @override
   String get splashTagline => 'Secure. Private. Free.';
@@ -18,7 +18,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseLanguage => 'Choose language';
 
   @override
-  String get onb1Title => 'SafeNet service';
+  String get onb1Title => 'SafeNet VPN';
 
   @override
   String get onb1Sub => 'Bypass censorship in UAE, Turkey and other countries — invisibly.';
@@ -241,7 +241,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get expiryLabel => 'Expires';
 
   @override
-  String get sectionVpn => 'service Settings';
+  String get sectionVpn => 'VPN Settings';
 
   @override
   String get killSwitchDesc => 'Your IP won\'t leak on disconnect';
@@ -328,7 +328,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get codeCopied => 'Code copied';
 
   @override
-  String get discountCardTitle => 'service at 50% price';
+  String get discountCardTitle => 'VPN at 50% price';
 
   @override
   String get discountCardHeader => '👥 Bring a friend';
@@ -485,7 +485,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeInviteTitle => '👥 Invite a friend — pay half price';
 
   @override
-  String get sectionServer => 'service Profile';
+  String get sectionServer => 'VPN Profile';
 
   @override
   String get serverCardDesc => 'Tap to change server';
