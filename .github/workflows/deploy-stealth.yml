@@ -17,7 +17,20 @@ jobs:
           echo "${{ secrets.SERVER1_SSH_KEY }}" > /tmp/server1_key
           chmod 600 /tmp/server1_key
 
-      - name: Deploy via Server #2 jump host
+      - name: Copy key to Server #2
+        run: |
+          sshpass -p "${{ secrets.SERVER2_PASSWORD }}" \
+            scp -o StrictHostKeyChecking=no \
+              /tmp/server1_key root@38.244.136.233:/tmp/server1_key
+
+      - name: Check WG tunnel (Server #2 → Server #1)
+        run: |
+          sshpass -p "${{ secrets.SERVER2_PASSWORD }}" \
+            ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
+              root@38.244.136.233 \
+              "ping -c 2 -W 3 10.10.10.1 && echo WG_OK || echo WG_DOWN"
+
+      - name: Deploy stealth code
         run: |
           sshpass -p "${{ secrets.SERVER2_PASSWORD }}" \
             ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
@@ -57,4 +70,8 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: rm -f /tmp/server1_key
+        run: |
+          sshpass -p "${{ secrets.SERVER2_PASSWORD }}" \
+            ssh -o StrictHostKeyChecking=no root@38.244.136.233 \
+              "rm -f /tmp/server1_key" 2>/dev/null || true
+          rm -f /tmp/server1_key
