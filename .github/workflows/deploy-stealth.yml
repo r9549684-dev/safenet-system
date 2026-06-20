@@ -25,13 +25,49 @@ jobs:
             root@38.244.136.233 \
             "ping -c 2 -W 3 10.10.10.1 && echo WG_OK || echo WG_DOWN"
 
-      - name: Deploy stealth code
+      - name: Fix wg1 (remove stealth — plain WG can't parse it)
+        run: |
+          ssh -i /tmp/server1_key -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
+            root@38.244.136.233 \
+            "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i /tmp/server1_key root@38.180.253.219 'bash -s'" << 'SCRIPT'
+          set -e
+          echo "=== Remove stealth from wg1.conf ==="
+          sed -i '/^Jc\|^Jmin\|^Jmax\|^S1\|^S2/d' /etc/wireguard/wg1.conf
+          echo "=== Bring wg1 up ==="
+          wg-quick up wg1
+          echo "=== Verify ==="
+          wg show wg1
+          ping -c 2 -W 3 10.10.10.2 && echo "WG_OK" || echo "WG_DOWN"
+          echo "=== DONE ==="
+          SCRIPT
+
+      - name: Install AmneziaWG on Server #1
         run: |
           ssh -i /tmp/server1_key -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
             root@38.244.136.233 \
             "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i /tmp/server1_key root@10.10.10.1 'bash -s'" << 'SCRIPT'
           set -e
+          echo "=== Install AmneziaWG ==="
+          if ! dpkg -l amneziawg-go 2>/dev/null | grep -q '^ii'; then
+            apt-get update -qq
+            apt-get install -y -qq amneziawg-go 2>&1 || echo "amneziawg-go not in repo, trying kernel module..."
+            if ! command -v awg-quick &>/dev/null; then
+              echo "=== Trying kernel module ==="
+              apt-get install -y -qq amneziawg-dkms 2>&1 || echo "dkms not available"
+            fi
+          fi
+          echo "=== Check AWG ==="
+          which awg-quick 2>/dev/null && echo "awg-quick found" || echo "awg-quick NOT found"
+          which wg-quick && echo "wg-quick still available"
+          echo "=== DONE ==="
+          SCRIPT
 
+      - name: Add stealth and restart with AmneziaWG
+        run: |
+          ssh -i /tmp/server1_key -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
+            root@38.244.136.233 \
+            "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i /tmp/server1_key root@10.10.10.1 'bash -s'" << 'SCRIPT'
+          set -e
           echo "=== Add stealth to wg1.conf ==="
           if ! grep -q Jc /etc/wireguard/wg1.conf 2>/dev/null; then
             cat >> /etc/wireguard/wg1.conf << 'WGEOF'
@@ -46,17 +82,20 @@ jobs:
             echo "Stealth already present"
           fi
 
-          echo "=== Restart wg1 ==="
+          echo "=== Restart wg1 with AWG ==="
           wg-quick down wg1 2>/dev/null || true
-          wg-quick up wg1
-
-          echo "=== Restart backend ==="
-          cd /opt/safenet && (docker compose restart safenet_vpn_backend 2>&1 || docker restart safenet_vpn_backend 2>&1 || true)
+          if command -v awg-quick &>/dev/null; then
+            awg-quick up wg1
+          else
+            echo "awg-quick not found, trying wg-quick with kernel AWG"
+            wg-quick up wg1
+          fi
 
           echo "=== Verify ==="
           sleep 2
           grep -E "Jc|Jmin|Jmax|S1|S2" /etc/wireguard/wg1.conf
           wg show wg1 2>/dev/null || wg show
+          ping -c 2 -W 3 10.10.10.2 && echo "WG_OK" || echo "WG_DOWN"
           echo "=== DONE ==="
           SCRIPT
 
