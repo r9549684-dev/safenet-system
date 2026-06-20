@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Write Server #1 SSH key
         run: |
-          echo "${{ secrets.SERVER1_SSH_KEY }}" > /tmp/server1_key
+          echo "${{ secrets.SERVER1_SSH_KEY }}" | base64 -d > /tmp/server1_key
           chmod 600 /tmp/server1_key
 
       - name: Copy key to Server #2
