@@ -31,8 +31,6 @@ jobs:
             root@38.244.136.233 \
             "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i /tmp/server1_key root@10.10.10.1 'bash -s'" << 'SCRIPT'
           set -e
-          echo "=== Pull code ==="
-          cd /opt/safenet/backend && git pull origin master
 
           echo "=== Add stealth to wg1.conf ==="
           if ! grep -q Jc /etc/wireguard/wg1.conf 2>/dev/null; then
@@ -48,17 +46,17 @@ jobs:
             echo "Stealth already present"
           fi
 
-          echo "=== Update DB ==="
-          docker exec safenet_db psql -U safenet -d safenet -c "UPDATE servers SET meta = jsonb_set(COALESCE(meta,'{}')::jsonb,'{stealth}','{\"Jc\":3,\"Jmin\":15,\"Jmax\":15,\"S1\":55,\"S2\":25}'::jsonb) WHERE id = 1;" 2>&1 || echo "DB update skipped"
+          echo "=== Restart wg1 ==="
+          wg-quick down wg1 2>/dev/null || true
+          wg-quick up wg1
 
           echo "=== Restart backend ==="
-          cd /opt/safenet && (docker compose restart safenet_vpn_backend 2>&1 || docker restart safenet_vpn_backend 2>&1)
+          cd /opt/safenet && (docker compose restart safenet_vpn_backend 2>&1 || docker restart safenet_vpn_backend 2>&1 || true)
 
           echo "=== Verify ==="
-          sleep 3
-          curl -s http://localhost:8001/health
-          echo ""
+          sleep 2
           grep -E "Jc|Jmin|Jmax|S1|S2" /etc/wireguard/wg1.conf
+          wg show wg1 2>/dev/null || wg show
           echo "=== DONE ==="
           SCRIPT
 
