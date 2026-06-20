@@ -25,12 +25,20 @@ class ApiClient {
 
   Future<T> get<T>(String path, {Map<String, dynamic>? params}) async {
     final r = await _dio.get(path, queryParameters: params);
-    return r.data as T;
+    final raw = r.data;
+    if (T == Map<String, dynamic>) {
+      return Map<String, dynamic>.from(raw as Map).cast<String, dynamic>() as T;
+    }
+    return raw as T;
   }
 
   Future<T> post<T>(String path, {dynamic data, Map<String, dynamic>? params}) async {
     final r = await _dio.post(path, data: data, queryParameters: params);
-    return r.data as T;
+    final raw = r.data;
+    if (T == Map<String, dynamic>) {
+      return Map<String, dynamic>.from(raw as Map).cast<String, dynamic>() as T;
+    }
+    return raw as T;
   }
 }
 

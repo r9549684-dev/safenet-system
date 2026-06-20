@@ -15,7 +15,7 @@ class VPNConnectionResult {
 }
 
 class VPNService {
-  static const _channel = MethodChannel('com.safenet.service/methods');
+  static const _channel = MethodChannel('com.safenet.vpn/methods');
 
   /// Гибридный режим: AmneziaWG туннель + ByeDPI поверх него
   /// Рекомендуется для TR, EG, AE, SA, IR

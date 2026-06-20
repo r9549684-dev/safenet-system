@@ -1,16 +1,21 @@
 import '../remote/api_client.dart';
 import '../remote/endpoints.dart';
 import '../../domain/models/server.dart';
+import '../../domain/models/server_model.dart';
 
 class ServerRepository {
   final _api = ApiClient();
 
-  Future<List<VpnServer>> getServers({String? country}) async {
-    final data = await _api.get<List>(
+  Future<List<ServerModel>> getServers({String? country}) async {
+    // Backend возвращает {"servers": [...]} — Map, а не List
+    final raw = await _api.get<Map<String, dynamic>>(
       Endpoints.servers,
       params: country != null ? {'country': country} : null,
     );
-    return data.map((j) => VpnServer.fromJson(j)).toList();
+    final list = raw['servers'] as List;
+    return list
+        .map((j) => ServerModel.fromJson(Map<String, dynamic>.from(j as Map)))
+        .toList();
   }
 
   Future<VpnServer> getRecommended() async {
@@ -29,11 +34,15 @@ class ServerRepository {
     );
   }
 
-  // ── SafeNet AMO: Seamless Failover ──────────────────────────────────────
+  // ─ SafeNet AMO: Seamless Failover ──────────────────────────────────────
 
   Future<List<Map<String, dynamic>>> getConnectionPool() async {
-    final data = await _api.post<List>(Endpoints.connectionPool);
-    return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    // Backend VpnPoolResponse возвращает {"configs": [...]} — Map, а не List
+    final raw = await _api.post<Map<String, dynamic>>(Endpoints.connectionPool);
+    final list = raw['configs'] as List? ?? [];
+    return list
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
   }
 
   Future<bool> reportBlockedConfig(String allocatedIp) async {

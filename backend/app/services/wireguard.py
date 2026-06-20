@@ -3,6 +3,7 @@ WireGuardService — генерация ключей, выделение IP-ад
 """
 import base64
 import os
+import random
 import subprocess
 import ipaddress
 import logging
@@ -22,6 +23,16 @@ WG_SERVER_IP = "10.8.0.1"
 WG_CLIENT_RANGE_START = 2
 WG_CLIENT_RANGE_END = 254
 WG_DNS = "1.1.1.1, 1.0.0.1"
+
+# AmneziaWG stealth-параметры (серверные, должны совпадать с wg1.conf на сервере)
+# Хранятся в server.meta["stealth"], при отсутствии — эти дефолты
+AWG_STEALTH_DEFAULTS: dict = {
+    "Jc": 3,     # Junk packet count
+    "Jmin": 15,  # Junk packet min size
+    "Jmax": 15,  # Junk packet max size
+    "S1": 55,    # Init packet junk size
+    "S2": 25,    # Response packet junk size
+}
 
 # wg-manager — HTTP-прокси для управления пирами на хосте
 WG_MANAGER_URL = "http://172.18.0.1:9876"
@@ -119,23 +130,51 @@ class WireGuardService:
         raise RuntimeError(f"No free IPs available on server {server_id} (pool exhausted)")
 
     @staticmethod
+    def _stealth_params(server: Server) -> dict:
+        """
+        Собирает AmneziaWG stealth-параметры для клиентского конфига.
+        Серверные (Jc, Jmin, Jmax, S1, S2) — из server.meta["stealth"] или дефолты.
+        Клиентские (H1-H4) — пересчитываются случайно для каждого клиента.
+        """
+        meta = server.meta or {}
+        srv = meta.get("stealth", AWG_STEALTH_DEFAULTS)
+
+        stealth = {
+            "Jc":  srv.get("Jc",  AWG_STEALTH_DEFAULTS["Jc"]),
+            "Jmin": srv.get("Jmin", AWG_STEALTH_DEFAULTS["Jmin"]),
+            "Jmax": srv.get("Jmax", AWG_STEALTH_DEFAULTS["Jmax"]),
+            "S1":  srv.get("S1",  AWG_STEALTH_DEFAULTS["S1"]),
+            "S2":  srv.get("S2",  AWG_STEALTH_DEFAULTS["S2"]),
+            "H1":  random.randint(1, 2147483647),
+            "H2":  random.randint(1, 2147483647),
+            "H3":  random.randint(1, 2147483647),
+            "H4":  random.randint(1, 2147483647),
+        }
+        return stealth
+
+    @staticmethod
     def generate_wg_config(
         server: Server,
         peer_private_key: str,
         peer_ip: str,
     ) -> str:
         """
-        Формирует строку WireGuard-конфига для клиента.
-        server.meta должен содержать 'wg_public_key' и опционально 'wg_port'.
+        Формирует строку AmneziaWG-конфига для клиента.
+        server.meta должен содержать 'wg_public_key' и опционально 'wg_port',
+        'stealth' (AmneziaWG stealth-параметры).
         """
         server_pubkey = (server.meta or {}).get("wg_public_key", "SERVER_PUBLIC_KEY_PLACEHOLDER")
         server_port = (server.meta or {}).get("wg_port", server.port)
         endpoint = f"{server.host}:{server_port}"
+        stealth = WireGuardService._stealth_params(server)
+
+        stealth_block = "\n".join(f"{k} = {v}" for k, v in stealth.items())
 
         config = f"""[Interface]
 PrivateKey = {peer_private_key}
 Address = {peer_ip}/24
 DNS = {WG_DNS}
+{stealth_block}
 
 [Peer]
 PublicKey = {server_pubkey}
@@ -146,10 +185,11 @@ PersistentKeepalive = 10
         return config.strip()
 
     @staticmethod
-    async def add_peer_to_server(pubkey: str, ip: str) -> None:
+    async def add_peer_to_server(pubkey: str, ip: str) -> bool:
         """
         Регистрирует пир на WireGuard-интерфейсе сервера через wg-manager.
-        Вызывается при создании нового подключения.
+        Возвращает True при успехе, False при недоступности wg-manager.
+        Не бросает исключение — wg-manager опционален (MVP mode).
         """
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
@@ -158,12 +198,13 @@ PersistentKeepalive = 10
                     json={"pubkey": pubkey, "ip": ip},
                 )
                 if resp.status_code != 200:
-                    log.error("wg-manager add-peer failed: %s %s", resp.status_code, resp.text)
-                    raise RuntimeError(f"wg-manager error: {resp.text}")
-                log.info("wg-manager: peer %s...  added at %s", pubkey[:12], ip)
+                    log.warning("wg-manager add-peer failed: %s %s", resp.status_code, resp.text)
+                    return False
+                log.info("wg-manager: peer %s... added at %s", pubkey[:12], ip)
+                return True
         except httpx.RequestError as e:
-            log.error("wg-manager unreachable: %s", e)
-            raise RuntimeError(f"wg-manager unreachable: {e}") from e
+            log.warning("wg-manager unreachable (peer not registered on server): %s", e)
+            return False
 
     @staticmethod
     async def remove_peer_from_server(pubkey: str) -> None:

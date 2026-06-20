@@ -72,8 +72,10 @@ class VpnProvider extends ChangeNotifier {
     if (_isLoadingServers) return;
     _isLoadingServers = true;
     try {
+      print('[DEBUG] loadServers: начинаем запрос');
       final fetchedServers = await _repo.getServers(country: country);
-      _servers = fetchedServers.cast<ServerModel>();
+      print('[DEBUG] loadServers: получено ${fetchedServers.length} серверов');
+      _servers = fetchedServers; // getServers() уже возвращает List<ServerModel>
       // Выбираем первый сервер если ещё не выбран
       if (_selected == null && _servers.isNotEmpty) {
         _selected = _servers.first;
@@ -169,13 +171,16 @@ class VpnProvider extends ChangeNotifier {
           wgConfig = activeConfig['wg_config'] as String? ?? '';
           showPaywall = activeConfig['show_paywall'] == true;
           fetchedFromPool = true;
-          
-          // Находим соответствующий сервер в нашем списке
-          final serverId = activeConfig['server_id'] as int;
-          _selected = _servers.firstWhere(
-            (s) => s.id == serverId,
-            orElse: () => _selected ?? _servers.first,
-          );
+
+          // Находим соответствующий сервер в нашем списке (id может быть int или String)
+          final rawSid = activeConfig['server_id'];
+          final serverIdStr = rawSid?.toString() ?? '';
+          if (serverIdStr.isNotEmpty) {
+            _selected = _servers.firstWhere(
+              (s) => s.id == serverIdStr,
+              orElse: () => _selected ?? _servers.first,
+            );
+          }
         }
       } catch (_) {
         print('[AMO] Не удалось получить пул, используем фоллбэк на одиночный конфиг');
@@ -362,12 +367,14 @@ class VpnProvider extends ChangeNotifier {
         print('[AMO] 🔄 Переключаюсь на резервный конфиг (Server ID: ${nextConfig['server_id']})');
         _currentWgConfig = newWgConfig;
         
-        // Находим новый сервер в локальном списке
-        final newServerId = nextConfig['server_id'] as int;
-        _selected = _servers.firstWhere(
-          (s) => s.id == newServerId,
-          orElse: () => _selected ?? _servers.first,
-        );
+        // Находим новый сервер в локальном списке (id может быть int или String)
+        final newSidStr = nextConfig['server_id']?.toString() ?? '';
+        if (newSidStr.isNotEmpty) {
+          _selected = _servers.firstWhere(
+            (s) => s.id == newSidStr,
+            orElse: () => _selected ?? _servers.first,
+          );
+        }
 
         // 3. Инициируем переподключение поверх текущего (Seamless)
         try {

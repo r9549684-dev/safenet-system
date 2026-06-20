@@ -19,7 +19,10 @@ class AmoPoolService {
       _activeServerIds.clear();
 
       for (var config in pool) {
-        final serverId = config['server_id'] as int;
+        final rawId = config['server_id'];
+        if (rawId == null) continue;
+        final serverId = int.tryParse(rawId.toString()) ?? 0;
+        if (serverId == 0) continue;
         final status = config['status'] as String?;
         if (status == 'ACTIVE' || status == 'STANDBY') {
           _localPool[serverId] = config;

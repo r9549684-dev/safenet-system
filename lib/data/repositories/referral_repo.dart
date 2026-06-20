@@ -7,8 +7,22 @@ class ReferralRepository {
   Future<Map<String, dynamic>> getStats() =>
       _api.get<Map<String, dynamic>>(Endpoints.referralStats);
 
-  Future<List> getRewards() =>
-      _api.get<List>(Endpoints.referralRewards);
+  /// Defensive parsing: backend по конвенции возвращает wrapped Map
+  /// {"rewards": [...]} или {"transactions": [...]} — извлекаем массив безопасно.
+  Future<List> getRewards() async {
+    try {
+      final raw = await _api.get<Map<String, dynamic>>(Endpoints.referralRewards);
+      if (raw is Map) {
+        for (final key in ['rewards', 'transactions', 'data']) {
+          if (raw[key] is List) return raw[key] as List;
+        }
+      }
+      if (raw is List) return raw;
+      return [];
+    } catch (_) {
+      return []; // endpoint может отсутствовать на бэкенде — не критично
+    }
+  }
 
   Future<Map<String, dynamic>> requestPayout(int telegramUserId) =>
       _api.post<Map<String, dynamic>>(

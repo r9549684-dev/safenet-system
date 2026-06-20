@@ -20,13 +20,13 @@ class VpnServer {
   });
 
   factory VpnServer.fromJson(Map<String, dynamic> j) => VpnServer(
-    id:         j['id'],
-    name:       j['name'],
-    country:    j['country'],
-    city:       j['city'],
+    id:         j['id']?.toString() ?? '',  // backend возвращает int
+    name:       j['name'] ?? 'Unknown',
+    country:    j['country'] ?? 'XX',
+    city:       j['city'] ?? '',
     serverType: j['server_type'] ?? 'amneziawg',
     load:       (j['current_load'] ?? 0).toDouble(),
-    latencyMs:  j['latency_ms'],
+    latencyMs:  j['latency_ms']?.toInt(),
     isActive:   j['is_active'] ?? true,
   );
 

@@ -7,7 +7,7 @@ import 'package:safenet_vpn/core/config_cache_service.dart';
 const bundleSingbox = bool.fromEnvironment('BUNDLE_HIDDIFY', defaultValue: false);
 
 class SingboxVpn {
-  static const _channel = MethodChannel('com.safenet.service/singbox');
+  static const _channel = MethodChannel('com.safenet.vpn/singbox');
   static const _apiBase = 'https://api.loveaibot.net';
 
   /// Взять singbox config из очереди (удалить из головы), при пустой — сеть.

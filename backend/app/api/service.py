@@ -175,11 +175,18 @@ async def connect_vpn(
 
     await session.commit()
 
-    # 5. Регистрируем пир на WireGuard-интерфейсе
-    await WireGuardService.add_peer_to_server(
+    # 5. Регистрируем пир на WireGuard-интерфейсе (graceful: wg-manager опционален)
+    peer_registered = await WireGuardService.add_peer_to_server(
         pubkey=connection.peer_public_key,
         ip=connection.allocated_ip,
     )
+    if not peer_registered:
+        log.warning(
+            "connect_vpn: wg-manager unavailable, peer NOT registered on server. "
+            "VPN tunnel will not work until wg-manager is deployed. "
+            "user=%s server=%s peer_ip=%s",
+            user.device_id, server_id, connection.allocated_ip,
+        )
 
     # 5.1 Лимит скорости: только при НОВОМ подключении или реактивации после watchdog-кика.
     # Если peer уже был активен — пропускаем, чтобы не прерывать трафик
