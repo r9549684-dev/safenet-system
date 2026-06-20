@@ -1,0 +1,21 @@
+name: Test SSH to Server #2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-ssh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write SSH key
+        run: |
+          echo "${{ secrets.SERVER1_SSH_KEY }}" | base64 -d > /tmp/server_key
+          chmod 600 /tmp/server_key
+
+      - name: Test SSH to Server #2
+        run: |
+          ssh -i /tmp/server_key -o StrictHostKeyChecking=no -o ConnectTimeout=15 root@38.244.136.233 "echo 'SSH_OK: Server #2 reachable'"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f /tmp/server_key
