@@ -1,0 +1,33 @@
+name: VPS SSH Relay
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Shell command to run on VPS'
+        required: true
+        default: 'echo "hello from VPS"; uptime; docker ps'
+
+jobs:
+  run-on-vps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Run command on VPS
+        run: |
+          ssh -i ~/.ssh/id_ed25519 \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
+            -o ServerAliveInterval=10 \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            '${{ github.event.inputs.command }}'
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519
