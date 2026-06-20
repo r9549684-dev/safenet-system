@@ -82,14 +82,13 @@ jobs:
             echo "Stealth already present"
           fi
 
+          echo "=== Copy config to AWG dir ==="
+          mkdir -p /etc/amnezia/amneziawg
+          cp /etc/wireguard/wg1.conf /etc/amnezia/amneziawg/wg1.conf
+
           echo "=== Restart wg1 with AWG ==="
           wg-quick down wg1 2>/dev/null || true
-          if command -v awg-quick &>/dev/null; then
-            awg-quick up wg1
-          else
-            echo "awg-quick not found, trying wg-quick with kernel AWG"
-            wg-quick up wg1
-          fi
+          awg-quick up wg1
 
           echo "=== Verify ==="
           sleep 2
