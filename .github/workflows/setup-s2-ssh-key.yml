@@ -6,14 +6,20 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     steps:
-      - name: Install sshpass
-        run: sudo apt-get install -y sshpass
-
-      - name: Add GitHub Actions SSH key to Server #2
-        env:
-          PASSWORD: ${{ secrets.SERVER2_PASSWORD }}
+      - name: Write Server #1 key
         run: |
-          PUB_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEks3pKOMy/gnVbK01pdTmc4TD8gtWCjCttN3SzYIjNy github-actions-safenet-s2"
-          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no \
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SERVER1_SSH_KEY }}" | base64 -d > /tmp/server1_key
+          chmod 600 /tmp/server1_key
+
+      - name: Add new SSH key to Server #2 via existing key
+        run: |
+          ssh -i /tmp/server1_key \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
             root@38.244.136.233 \
-            "mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '$PUB_KEY' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && echo KEY_ADDED_OK"
+            'echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEks3pKOMy/gnVbK01pdTmc4TD8gtWCjCttN3SzYIjNy github-actions-safenet-s2" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && echo KEY_ADDED_OK'
+
+      - name: Cleanup
+        if: always()
+        run: rm -f /tmp/server1_key
