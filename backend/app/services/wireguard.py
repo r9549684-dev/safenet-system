@@ -4,6 +4,7 @@ WireGuardService — генерация ключей, выделение IP-ад
 import base64
 import os
 import random
+import secrets
 import subprocess
 import ipaddress
 import logging
@@ -25,13 +26,17 @@ WG_CLIENT_RANGE_END = 254
 WG_DNS = "1.1.1.1, 1.0.0.1"
 
 # AmneziaWG stealth-параметры (серверные, должны совпадать с wg1.conf на сервере)
-# Хранятся в server.meta["stealth"], при отсутствии — эти дефолты
+# Хранятся в server.meta["stealth"], при отсутствии — эти дефолты.
+# S3/S4 — для AWG 2.0 (опциональны в v2: kernel 2.0 принимает конфиг без них).
+# Kernel 2.0 принимает конфиги 1.x в compat mode.
 AWG_STEALTH_DEFAULTS: dict = {
     "Jc": 3,     # Junk packet count
     "Jmin": 15,  # Junk packet min size
-    "Jmax": 15,  # Junk packet max size
+    "Jmax": 20,  # Junk packet max size (must be > Jmin, kernel rejects Jmax <= Jmin)
     "S1": 55,    # Init packet junk size
     "S2": 25,    # Response packet junk size
+    "S3": 0,     # Cookie reply junk size (AWG 2.0; 0 = disabled in v2)
+    "S4": 0,     # Transport junk size  (AWG 2.0; 0 = disabled in v2)
 }
 
 # wg-manager — HTTP-прокси для управления пирами на хосте
@@ -130,26 +135,63 @@ class WireGuardService:
         raise RuntimeError(f"No free IPs available on server {server_id} (pool exhausted)")
 
     @staticmethod
+    def _generate_h_ranges() -> dict:
+        """
+        Генерирует H1-H4 как строки "min-max" для AmneziaWG 2.0.
+        Каждому клиенту — уникальные диапазоны; kernel 2.0 случайно
+        выбирает значение внутри диапазона для каждого соединения.
+          H1 — TCP seqnum offset (>=1, чтобы пакет не выглядел "пустым")
+          H2 — TCP acknum offset (1 — ~2^31)
+          H3 — IP.toS offset      (1 — 45, укладывается в TOS range)
+          H4 — IP.ttl offset      (1 — 45, укладывается в TTL range 64)
+        """
+        return {
+            "H1": f"{random.randint(1, 100000)}-{random.randint(100001, 2147483647)}",
+            "H2": f"{random.randint(1, 100000)}-{random.randint(100001, 2147483647)}",
+            "H3": f"{random.randint(1, 20)}-{random.randint(21, 45)}",
+            "H4": f"{random.randint(1, 20)}-{random.randint(21, 45)}",
+        }
+
+    @staticmethod
     def _stealth_params(server: Server) -> dict:
         """
         Собирает AmneziaWG stealth-параметры для клиентского конфига.
-        Серверные (Jc, Jmin, Jmax, S1, S2) — из server.meta["stealth"] или дефолты.
-        Клиентские (H1-H4) — пересчитываются случайно для каждого клиента.
+        Версия определяется server.meta["awg_version"] (source of truth):
+          - отсутствует / 1 → формат 1.x (Jc..S2, H1-H4 как int)
+          - 2              → формат 2.x (+ S3/S4, + I1-I5, H1-H4 как "min-max")
         """
         meta = server.meta or {}
         srv = meta.get("stealth", AWG_STEALTH_DEFAULTS)
+        awg_version = meta.get("awg_version", 1)
+
+        # ── Общие параметры (v1 и v2) ──────────────────────────
+        jmin = random.randint(10, 20)
+        jmax = random.randint(jmin + 5, jmin + 15)
 
         stealth = {
-            "Jc":  srv.get("Jc",  AWG_STEALTH_DEFAULTS["Jc"]),
-            "Jmin": srv.get("Jmin", AWG_STEALTH_DEFAULTS["Jmin"]),
-            "Jmax": srv.get("Jmax", AWG_STEALTH_DEFAULTS["Jmax"]),
-            "S1":  srv.get("S1",  AWG_STEALTH_DEFAULTS["S1"]),
-            "S2":  srv.get("S2",  AWG_STEALTH_DEFAULTS["S2"]),
-            "H1":  random.randint(1, 2147483647),
-            "H2":  random.randint(1, 2147483647),
-            "H3":  random.randint(1, 2147483647),
-            "H4":  random.randint(1, 2147483647),
+            "Jc":   srv.get("Jc",   AWG_STEALTH_DEFAULTS["Jc"]),
+            "Jmin": jmin,
+            "Jmax": jmax,
+            "S1":   srv.get("S1",   AWG_STEALTH_DEFAULTS["S1"]),
+            "S2":   srv.get("S2",   AWG_STEALTH_DEFAULTS["S2"]),
         }
+
+        # ── AWG 2.0: добавляем S3, S4, I1-I5, H-диапазоны ────
+        if awg_version == 2:
+            stealth["S3"] = srv.get("S3", AWG_STEALTH_DEFAULTS["S3"])
+            stealth["S4"] = srv.get("S4", AWG_STEALTH_DEFAULTS["S4"])
+            # I1-I5 — special junk strings (hex, от сервера или свежий генератор)
+            # Каждый клиент получает новые строки — анти-сигнатурная защита.
+            for key in ("I1", "I2", "I3", "I4", "I5"):
+                stealth[key] = srv.get(key, secrets.token_hex(random.randint(2, 8)))
+            stealth.update(WireGuardService._generate_h_ranges())
+        else:
+            # ── AWG 1.x: классический формат (H1-H4 как int) ─
+            stealth["H1"] = random.randint(1, 2147483647)
+            stealth["H2"] = random.randint(1, 2147483647)
+            stealth["H3"] = random.randint(1, 2147483647)
+            stealth["H4"] = random.randint(1, 2147483647)
+
         return stealth
 
     @staticmethod
