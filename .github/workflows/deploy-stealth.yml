@@ -73,7 +73,7 @@ jobs:
             cat >> /etc/wireguard/wg1.conf << 'WGEOF'
           Jc = 3
           Jmin = 15
-          Jmax = 15
+          Jmax = 20
           S1 = 55
           S2 = 25
           WGEOF
