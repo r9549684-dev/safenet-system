@@ -1,0 +1,19 @@
+python3 -c "
+import urllib.request, json
+# 1. Auth
+auth_data = json.dumps({'device_id':'relay-awg-003','country':'RO'}).encode()
+req = urllib.request.Request('http://localhost:8001/auth/device', data=auth_data, headers={'Content-Type':'application/json'})
+resp = json.loads(urllib.request.urlopen(req).read())
+token = resp['access_token']
+print('AUTH_OK user_id=', resp.get('user',{}).get('id','?')[:8])
+# 2. Connect
+req2 = urllib.request.Request('http://localhost:8001/service/connect/1', method='POST', headers={'Authorization':'Bearer '+token})
+resp2 = json.loads(urllib.request.urlopen(req2).read())
+print('PEER_IP:', resp2.get('peer_ip'))
+print('MODE:', resp2.get('mode'))
+print('STATUS:', resp2.get('status'))
+wg = resp2.get('wg_config','NO_CONFIG')
+print('===WG_CONFIG===')
+print(wg)
+print('===END===')
+"

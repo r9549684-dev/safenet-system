@@ -19,15 +19,6 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.VPS_HOST_S2 }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Debug key
-        run: |
-          echo "secret length: $(echo "${{ secrets.VPS_SSH_KEY_S2 }}" | wc -c)"
-          echo "decoded first bytes:"
-          echo "${{ secrets.VPS_SSH_KEY_S2 }}" | base64 -d | head -c 40 | cat -v
-          echo ""
-          echo "decoded file size:"
-          echo "${{ secrets.VPS_SSH_KEY_S2 }}" | base64 -d | wc -c
-
       - name: Run command on Server #2
         run: |
           ssh -i ~/.ssh/id_ed25519 \
