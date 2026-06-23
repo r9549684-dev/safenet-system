@@ -160,9 +160,10 @@ void main() {
       final jsonStr = VlessSingboxConverter.toSingboxJson(config);
       final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
       final ob = (parsed['outbounds'] as List)[0] as Map<String, dynamic>;
+      final tls = ob['tls'] as Map<String, dynamic>;
 
-      expect(ob.containsKey('fragment'), isTrue);
-      final frag = ob['fragment'] as Map<String, dynamic>;
+      expect(tls.containsKey('fragment'), isTrue);
+      final frag = tls['fragment'] as Map<String, dynamic>;
       expect(frag['packets'], 'tlshello');
       expect(frag.containsKey('length'), isFalse);
       expect(frag.containsKey('interval'), isFalse);
@@ -177,7 +178,9 @@ void main() {
       };
       final jsonStr = VlessSingboxConverter.toSingboxJson(config);
       final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
-      final frag = ((parsed['outbounds'] as List)[0] as Map)['fragment'] as Map<String, dynamic>;
+      final ob = (parsed['outbounds'] as List)[0] as Map<String, dynamic>;
+      final tls = ob['tls'] as Map<String, dynamic>;
+      final frag = tls['fragment'] as Map<String, dynamic>;
       expect(frag['packets'], '1-3');
       expect(frag['length'], '10-30');
       expect(frag['interval'], '10-20');
@@ -187,7 +190,8 @@ void main() {
       final jsonStr = VlessSingboxConverter.toSingboxJson(validConfig);
       final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
       final ob = (parsed['outbounds'] as List)[0] as Map<String, dynamic>;
-      expect(ob.containsKey('fragment'), isFalse);
+      final tls = ob['tls'] as Map<String, dynamic>;
+      expect(tls.containsKey('fragment'), isFalse);
     });
 
     test('skips fragment when backend sends empty map', () {
@@ -196,7 +200,8 @@ void main() {
       final jsonStr = VlessSingboxConverter.toSingboxJson(config);
       final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
       final ob = (parsed['outbounds'] as List)[0] as Map<String, dynamic>;
-      expect(ob.containsKey('fragment'), isFalse);
+      final tls = ob['tls'] as Map<String, dynamic>;
+      expect(tls.containsKey('fragment'), isFalse);
     });
   });
 }

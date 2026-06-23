@@ -33,30 +33,21 @@ class VlessSingboxConverter {
     final serverName = (reality['server_name'] as String?) ?? 'www.microsoft.com';
     final fingerprint = (reality['fingerprint'] as String?) ?? 'chrome';
 
-    final outbound = <String, dynamic>{
-      'type': 'vless',
-      'tag': 'proxy',
-      'server': address,
-      'server_port': port,
-      'uuid': uuid,
-      'flow': flow,
-      'tls': <String, dynamic>{
+    final tlsBlock = <String, dynamic>{
+      'enabled': true,
+      'server_name': serverName,
+      'utls': <String, dynamic>{
         'enabled': true,
-        'server_name': serverName,
-        'utls': <String, dynamic>{
-          'enabled': true,
-          'fingerprint': fingerprint,
-        },
-        'reality': <String, dynamic>{
-          'enabled': true,
-          'public_key': publicKey,
-          'short_id': shortId,
-        },
+        'fingerprint': fingerprint,
+      },
+      'reality': <String, dynamic>{
+        'enabled': true,
+        'public_key': publicKey,
+        'short_id': shortId,
       },
     };
 
-    // Phase 1.5: fragment всегда приходит от бэкенда (обход L7 DPI fingerprint).
-    // Если вдруг нет — не добавляем, чтобы не сломать старые конфиги.
+    // Fragment: sing-box требует tls.fragment (не top-level outbound).
     final fragment = vlessConfig['fragment'] as Map?;
     if (fragment != null && fragment.isNotEmpty) {
       final fragmentBlock = <String, dynamic>{};
@@ -73,9 +64,19 @@ class VlessSingboxConverter {
         fragmentBlock['interval'] = interval;
       }
       if (fragmentBlock.isNotEmpty) {
-        outbound['fragment'] = fragmentBlock;
+        tlsBlock['fragment'] = fragmentBlock;
       }
     }
+
+    final outbound = <String, dynamic>{
+      'type': 'vless',
+      'tag': 'proxy',
+      'server': address,
+      'server_port': port,
+      'uuid': uuid,
+      'flow': flow,
+      'tls': tlsBlock,
+    };
 
     return jsonEncode(<String, dynamic>{
       'outbounds': <dynamic>[outbound],

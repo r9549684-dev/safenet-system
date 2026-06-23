@@ -163,11 +163,11 @@ def test_to_singbox_outbound_structure():
     assert ob["tls"]["utls"]["fingerprint"] == "chrome"
     assert ob["tls"]["reality"]["public_key"] == "x_9Kud4M0DXeoERCsUJZmiV-q-k6KPOUoZe20olvxnA"
     assert ob["tls"]["reality"]["short_id"] == "e95c5ddcfff353d0"
-    # fragment блок
-    assert ob["fragment"]["packets"] == "tlshello"
+    # fragment блок — внутри tls (требуется sing-box спецификацией)
+    assert ob["tls"]["fragment"]["packets"] == "tlshello"
     # length/interval НЕ попадут, когда None
-    assert "length" not in ob["fragment"]
-    assert "interval" not in ob["fragment"]
+    assert "length" not in ob["tls"]["fragment"]
+    assert "interval" not in ob["tls"]["fragment"]
 
 
 def test_to_singbox_outbound_no_transport_tcp():
@@ -188,9 +188,9 @@ def test_to_singbox_outbound_fragment_explicit():
         **_good(fragment={"packets": "1-3", "length": "10-30", "interval": "10-20"})
     )
     ob = p.to_singbox_outbound()
-    assert ob["fragment"]["packets"] == "1-3"
-    assert ob["fragment"]["length"] == "10-30"
-    assert ob["fragment"]["interval"] == "10-20"
+    assert ob["tls"]["fragment"]["packets"] == "1-3"
+    assert ob["tls"]["fragment"]["length"] == "10-30"
+    assert ob["tls"]["fragment"]["interval"] == "10-20"
 
 
 # ── model_dump (сериализация для API) ───────────────────────────────────────

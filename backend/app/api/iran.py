@@ -30,7 +30,7 @@ def _xray_params() -> dict:
         "uuid":       getattr(settings, "XRAY_UUID", ""),
         "public_key": getattr(settings, "XRAY_PUBLIC_KEY", ""),
         "short_id":   getattr(settings, "XRAY_SHORT_ID", ""),
-        "dest":       "dl.google.com",  # SNI маскировка
+        "dest":       "www.microsoft.com",  # SNI — должен совпадать с xray server reality.dest
         "fingerprint": "chrome",
     }
 
@@ -86,16 +86,12 @@ def build_singbox_config(p: dict) -> dict:
                         "public_key": p["public_key"],
                         "short_id":   p["short_id"],
                     },
+                    "fragment": {
+                        "packets": "tlshello",
+                    },
                 },
-                # Фрагментация ClientHello — ключевой параметр для Ирана
-                "transport": {
-                    "type": "tcp",
-                    "tcp_fast_open": False,
-                },
-                "multiplex": {
-                    "enabled": True,
-                    "padding": True,
-                },
+                # Fragment (внутри tls) — фрагментация ClientHello для обхода DPI
+                # transport.type=tcp НАМЕРЕННО УДАЛЁН: FATAL для sing-box 1.12+ с vision flow
             },
             {"type": "direct", "tag": "direct"},
             {"type": "block",  "tag": "block"},

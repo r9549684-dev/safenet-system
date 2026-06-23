@@ -115,6 +115,6 @@ class VlessRealityParams(BaseModel):
                     "public_key": self.reality_opts.public_key,
                     "short_id": self.reality_opts.short_id,
                 },
+                "fragment": self.fragment.model_dump(exclude_none=True),
             },
-            "fragment": self.fragment.model_dump(exclude_none=True),
         }
