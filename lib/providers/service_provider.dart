@@ -9,6 +9,7 @@ import '../domain/enums/service_status.dart';
 import '../services/service_service.dart';
 import '../services/amo_pool_service.dart';
 import '../core/singbox_service.dart';
+import '../core/vless_to_singbox.dart';
 import '../core/config_cache_service.dart';
 import '../core/constants.dart';
 
@@ -180,6 +181,26 @@ class VpnProvider extends ChangeNotifier {
               (s) => s.id == serverIdStr,
               orElse: () => _selected ?? _servers.first,
             );
+          }
+
+          // VLESS-first: если backend пометил primary_protocol=vless — пробуем singbox
+          final primaryProtocol = activeConfig['primary_protocol'] as String? ?? 'awg';
+          final vlessConfig = activeConfig['vless_config'] as Map<String, dynamic>?;
+          if (primaryProtocol == 'vless' &&
+              vlessConfig != null &&
+              VlessSingboxConverter.isValid(vlessConfig)) {
+            try {
+              final singboxJson = VlessSingboxConverter.toSingboxJson(vlessConfig);
+              final ok = await SingboxVpn.start(singboxJson);
+              if (ok) {
+                _usingSingbox = true;
+                _finishConnect();
+                return;
+              }
+              print('[VLESS] SingboxVpn.start() failed — fallback to AWG');
+            } catch (e) {
+              print('[VLESS] convert/start error: $e — fallback to AWG');
+            }
           }
         }
       } catch (_) {

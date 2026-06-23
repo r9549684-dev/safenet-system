@@ -23,6 +23,7 @@ from app.models.connection import UserConnection, ConnectionStatus
 from app.models.node_metrics import NodeMetrics
 from app.services.wireguard import WireGuardService
 from app.services.xray import get_vless_config
+from app.services.xray_models import VlessRealityParams
 from app.services.entitlements import is_user_premium, has_trial
 from app.utils.security import decode_token
 from app.services.ano.node_ranker import NodeRanker
@@ -40,7 +41,7 @@ class VpnConnectResponse(BaseModel):
     peer_ip: str
     byedpi_profile: dict[str, Any]
     mode: str  # "hybrid" | "amnezia_only"
-    vless_config: dict[str, Any]
+    vless_config: VlessRealityParams
     primary_protocol: str = "awg"  # "vless" | "awg" — какой протокол клиент должен попробовать первым
     show_paywall: bool = False  # true на 2-м, 4-м... подключении после истечения триала
     status: str = "ACTIVE" # Для обратной совместимости
@@ -54,7 +55,7 @@ class VpnConfigItem(BaseModel):
     peer_ip: str
     byedpi_profile: dict[str, Any]
     mode: str
-    vless_config: dict[str, Any]
+    vless_config: VlessRealityParams
     primary_protocol: str = "awg"  # "vless" | "awg"
     status: str  # ACTIVE или STANDBY
 
@@ -396,7 +397,7 @@ async def _build_config_item(
     strict_countries = {"TR", "EG", "AE", "SA", "IR", "CN", "RU"}
     mode = "hybrid" if server.country.upper() in strict_countries else "amnezia_only"
     vless_config = get_vless_config(server_ip=server.host)
-    primary_protocol = "vless" if vless_config.get("uuid") else "awg"
+    primary_protocol = "vless" if vless_config.uuid else "awg"
 
     return VpnConfigItem(
         server_id=server.id,
@@ -450,7 +451,7 @@ async def get_connection_pool(
             byedpi_profile=WireGuardService.get_byedpi_profile(server.country),
             mode=mode,
             vless_config=vless_cfg,
-            primary_protocol="vless" if vless_cfg.get("uuid") else "awg",
+            primary_protocol="vless" if vless_cfg.uuid else "awg",
             status=conn.status.value,
         ))
 
