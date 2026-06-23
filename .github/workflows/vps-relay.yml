@@ -7,6 +7,10 @@ on:
         description: 'Shell command to run on VPS'
         required: true
         default: 'echo "hello from VPS"; uptime; docker ps'
+      target:
+        description: 'Log target (backend|postgres|docker|nginx|ipcables|all)'
+        required: false
+        default: 'backend'
 
 jobs:
   run-on-vps:
@@ -27,6 +31,40 @@ jobs:
             -o ServerAliveInterval=10 \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             '${{ github.event.inputs.command }}'
+
+      - name: Fetch log from VPS
+        run: |
+          # Try to copy log from VPS
+          scp -i ~/.ssh/id_ed25519 \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=15 \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/vps_log.txt ./vps_log_fetched.txt 2>/dev/null || echo "NO_LOG_FILE"
+
+      - name: Push log to vps-logs branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ ! -f ./vps_log_fetched.txt ] || grep -q "NO_LOG_FILE" ./vps_log_fetched.txt 2>/dev/null; then
+            echo "No log fetched from VPS — skipping push"
+            exit 0
+          fi
+          
+          # Clone existing repo and check/create vps-logs branch
+          git clone https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git /tmp/vpslogs_repo 2>&1 | tail -3
+          cd /tmp/vpslogs_repo
+          git config user.email "relay@safenet.app"
+          git config user.name "VPS-Relay"
+          
+          # Try to checkout vps-logs or create orphan
+          git checkout vps-logs 2>/dev/null || git checkout --orphan vps-logs
+          git rm -rf . 2>/dev/null || true
+          
+          cp ./vps_log_fetched.txt ./vps_log.txt || cp ../vps_log_fetched.txt ./vps_log.txt
+          git add vps_log.txt -f
+          git commit -m "VPS log fetch $(date +%Y%m%d_%H%M%S) ${{ github.event.inputs.target || 'manual' }}"
+          git push origin vps-logs --force 2>&1 | tail -5
+          echo "Pushed vps_log.txt to vps-logs branch"
 
       - name: Cleanup SSH key
         if: always()
