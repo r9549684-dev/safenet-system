@@ -34,6 +34,8 @@ jobs:
 
       - name: Fetch log from VPS
         run: |
+          # Wait for VPS log to be ready
+          sleep 3
           # Try to copy log from VPS
           scp -i ~/.ssh/id_ed25519 \
             -o StrictHostKeyChecking=no \
