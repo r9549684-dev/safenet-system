@@ -21,7 +21,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onb1Title => 'SafeNet VPN';
 
   @override
-  String get onb1Sub => 'Bypass censorship in UAE, Turkey and other countries — invisibly.';
+  String get onb1Sub =>
+      'Bypass censorship in UAE, Turkey and other countries — invisibly.';
 
   @override
   String get onb2Title => 'Stealth Technology';
@@ -33,7 +34,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onb3Title => '3 Days Free';
 
   @override
-  String get onb3Sub => 'Try premium features right now. No registration needed.';
+  String get onb3Sub =>
+      'Try premium features right now. No registration needed.';
 
   @override
   String get next => 'Next →';
@@ -334,19 +336,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discountCardHeader => '👥 Bring a friend';
 
   @override
-  String get discountCardDesc => 'Bring 1 to 10 friends — get 50% discount on next payment for each paying referral.';
+  String get discountCardDesc =>
+      'Bring 1 to 10 friends — get 50% discount on next payment for each paying referral.';
 
   @override
   String get discountCardNote => '1 — 10 friends = 50% discount each';
 
   @override
-  String get discountCardInfo => 'Friend scans QR or enters code at install — discount applies automatically';
+  String get discountCardInfo =>
+      'Friend scans QR or enters code at install — discount applies automatically';
 
   @override
   String get partnerTiersTitle => 'Become a partner';
 
   @override
-  String get partnerTiersSubtitle => 'From 11 paying referrals — real income in TON';
+  String get partnerTiersSubtitle =>
+      'From 11 paying referrals — real income in TON';
 
   @override
   String get tierColReferrals => 'Referrals';
@@ -358,7 +363,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tierColMonthly => 'Monthly';
 
   @override
-  String get tierNoteText => '\$1.5 — one-time at first referral payment\n% — monthly from each subsequent payment';
+  String get tierNoteText =>
+      '\$1.5 — one-time at first referral payment\n% — monthly from each subsequent payment';
 
   @override
   String get qrTitle => '📲 QR code for friends';
@@ -399,7 +405,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get becomePartnerTitle => '🚀 Become a partner';
 
   @override
-  String get becomePartnerDesc => 'Available from 11 paying referrals. Payouts to TON wallet.';
+  String get becomePartnerDesc =>
+      'Available from 11 paying referrals. Payouts to TON wallet.';
 
   @override
   String get walletHint => '0:abc... or EQabc...';

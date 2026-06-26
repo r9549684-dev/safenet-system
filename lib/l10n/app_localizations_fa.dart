@@ -21,19 +21,22 @@ class AppLocalizationsFa extends AppLocalizations {
   String get onb1Title => 'سیف‌نت VPN';
 
   @override
-  String get onb1Sub => 'سانسور اینترنت در امارات، ترکیه و سایر کشورها را دور بزنید — به‌طور نامحسوس.';
+  String get onb1Sub =>
+      'سانسور اینترنت در امارات، ترکیه و سایر کشورها را دور بزنید — به‌طور نامحسوس.';
 
   @override
   String get onb2Title => 'فناوری استیلث';
 
   @override
-  String get onb2Sub => 'ByeDPI و AmneziaWG به‌طور خودکار با اینترنت شما سازگار می‌شوند.';
+  String get onb2Sub =>
+      'ByeDPI و AmneziaWG به‌طور خودکار با اینترنت شما سازگار می‌شوند.';
 
   @override
   String get onb3Title => '۳ روز رایگان';
 
   @override
-  String get onb3Sub => 'همین الان امکانات پریمیوم را امتحان کنید. نیازی به ثبت‌نام نیست.';
+  String get onb3Sub =>
+      'همین الان امکانات پریمیوم را امتحان کنید. نیازی به ثبت‌نام نیست.';
 
   @override
   String get next => 'بعدی →';
@@ -183,7 +186,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get featurePrioritySupport => 'پشتیبانی ویژه';
 
   @override
-  String get trialExpiredMsg => 'دوره آزمایشی منقضی شد — جلسات ۵ دقیقه‌ای در دسترس است.';
+  String get trialExpiredMsg =>
+      'دوره آزمایشی منقضی شد — جلسات ۵ دقیقه‌ای در دسترس است.';
 
   @override
   String trialExpiresIn(int days) {
@@ -334,19 +338,22 @@ class AppLocalizationsFa extends AppLocalizations {
   String get discountCardHeader => '👥 دوست بیاور';
 
   @override
-  String get discountCardDesc => '۱ تا ۱۰ دوست بیاور — برای هر زیرمجموعه پرداخت‌کننده ۵۰٪ تخفیف در پرداخت بعدی دریافت کن.';
+  String get discountCardDesc =>
+      '۱ تا ۱۰ دوست بیاور — برای هر زیرمجموعه پرداخت‌کننده ۵۰٪ تخفیف در پرداخت بعدی دریافت کن.';
 
   @override
   String get discountCardNote => '۱ — ۱۰ دوست = ۵۰٪ تخفیف برای هر کدام';
 
   @override
-  String get discountCardInfo => 'دوست QR را اسکن می‌کند یا کد را هنگام نصب وارد می‌کند — تخفیف خودکار اعمال می‌شود';
+  String get discountCardInfo =>
+      'دوست QR را اسکن می‌کند یا کد را هنگام نصب وارد می‌کند — تخفیف خودکار اعمال می‌شود';
 
   @override
   String get partnerTiersTitle => 'تبدیل به شریک شوید';
 
   @override
-  String get partnerTiersSubtitle => 'از ۱۱ زیرمجموعه پرداخت‌کننده — درآمد واقعی در TON';
+  String get partnerTiersSubtitle =>
+      'از ۱۱ زیرمجموعه پرداخت‌کننده — درآمد واقعی در TON';
 
   @override
   String get tierColReferrals => 'زیرمجموعه‌ها';
@@ -358,7 +365,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get tierColMonthly => 'ماهانه';
 
   @override
-  String get tierNoteText => '\$1.5 — یک‌بار در اولین پرداخت زیرمجموعه\n% — ماهانه از هر پرداخت بعدی';
+  String get tierNoteText =>
+      '\$1.5 — یک‌بار در اولین پرداخت زیرمجموعه\n% — ماهانه از هر پرداخت بعدی';
 
   @override
   String get qrTitle => '📲 کد QR برای دوستان';
@@ -399,7 +407,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get becomePartnerTitle => '🚀 تبدیل به شریک شوید';
 
   @override
-  String get becomePartnerDesc => 'از ۱۱ زیرمجموعه پرداخت‌کننده در دسترس است. پرداخت به کیف پول TON.';
+  String get becomePartnerDesc =>
+      'از ۱۱ زیرمجموعه پرداخت‌کننده در دسترس است. پرداخت به کیف پول TON.';
 
   @override
   String get walletHint => '0:abc... یا EQabc...';

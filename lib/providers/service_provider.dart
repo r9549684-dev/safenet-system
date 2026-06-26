@@ -124,6 +124,10 @@ class VpnProvider extends ChangeNotifier {
 
     // Выбираем сервер если не выбран
     if (_selected == null) {
+      if (_servers.isEmpty) {
+        print('[VPN] servers empty, loading...');
+        await loadServers(country: countryCode);
+      }
       if (_servers.isNotEmpty) {
         _selected = _servers.first;
       } else {

@@ -21,19 +21,22 @@ class AppLocalizationsRu extends AppLocalizations {
   String get onb1Title => 'SafeNet VPN';
 
   @override
-  String get onb1Sub => 'Обходите цензуру в ОАЭ, Турции и других странах — незаметно.';
+  String get onb1Sub =>
+      'Обходите цензуру в ОАЭ, Турции и других странах — незаметно.';
 
   @override
   String get onb2Title => 'Stealth Технологии';
 
   @override
-  String get onb2Sub => 'ByeDPI и AmneziaWG автоматически подстраиваются под провайдера.';
+  String get onb2Sub =>
+      'ByeDPI и AmneziaWG автоматически подстраиваются под провайдера.';
 
   @override
   String get onb3Title => '3 Дня Бесплатно';
 
   @override
-  String get onb3Sub => 'Попробуйте премиум функции прямо сейчас. Регистрация не нужна.';
+  String get onb3Sub =>
+      'Попробуйте премиум функции прямо сейчас. Регистрация не нужна.';
 
   @override
   String get next => 'Далее →';
@@ -334,19 +337,22 @@ class AppLocalizationsRu extends AppLocalizations {
   String get discountCardHeader => '👥 Подключи друга';
 
   @override
-  String get discountCardDesc => 'Приведи от 1 до 10 друзей — получи скидку 50% на следующую оплату за каждого платящего реферала.';
+  String get discountCardDesc =>
+      'Приведи от 1 до 10 друзей — получи скидку 50% на следующую оплату за каждого платящего реферала.';
 
   @override
   String get discountCardNote => '1 — 10 друзей = 50% скидка за каждого';
 
   @override
-  String get discountCardInfo => 'Друг сканирует QR или вводит код при установке — скидка применяется автоматически';
+  String get discountCardInfo =>
+      'Друг сканирует QR или вводит код при установке — скидка применяется автоматически';
 
   @override
   String get partnerTiersTitle => 'Стать партнёром';
 
   @override
-  String get partnerTiersSubtitle => 'От 11 платящих рефералов — реальный доход на TON';
+  String get partnerTiersSubtitle =>
+      'От 11 платящих рефералов — реальный доход на TON';
 
   @override
   String get tierColReferrals => 'Рефералов';
@@ -358,7 +364,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get tierColMonthly => 'Ежемесячно';
 
   @override
-  String get tierNoteText => '\$1.5 — единовременно при первой оплате реферала\n% — ежемесячно от каждой последующей оплаты';
+  String get tierNoteText =>
+      '\$1.5 — единовременно при первой оплате реферала\n% — ежемесячно от каждой последующей оплаты';
 
   @override
   String get qrTitle => '📲 QR-код для друзей';
@@ -399,7 +406,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get becomePartnerTitle => '🚀 Стать партнёром';
 
   @override
-  String get becomePartnerDesc => 'Доступно от 11 платящих рефералов. Выплаты на TON-кошелёк.';
+  String get becomePartnerDesc =>
+      'Доступно от 11 платящих рефералов. Выплаты на TON-кошелёк.';
 
   @override
   String get walletHint => '0:abc... или EQabc...';
