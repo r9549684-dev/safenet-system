@@ -23,6 +23,8 @@ from app.api import (
     payments_admin_router,
     subscriptions_router,
     ano_router,
+    config_router,
+    iran_router,
 )
 
 setup_logging(settings.DEBUG)
@@ -71,3 +73,5 @@ app.include_router(admin_router)
 app.include_router(payments_admin_router)
 app.include_router(subscriptions_router)
 app.include_router(ano_router)
+app.include_router(config_router)
+app.include_router(iran_router)

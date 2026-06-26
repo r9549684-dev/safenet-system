@@ -84,15 +84,29 @@ class SingboxVpnService : VpnService() {
             val tun2socksBin = getBinary("libtun2socks.so")
 
             // 2. Android VPN TUN
+            // CRITICAL FIX: Уменьшен MTU для overhead туннеля (VLESS+Reality+Fragment)
+            // CRITICAL FIX: Добавлен network monitoring для отслеживания смены сети
             val builder = Builder()
                 .setSession("SafeNet Iran")
-                .setMtu(1500)
+                .setMtu(1400)  // Уменьшен с 1500 для overhead туннеля
                 .addAddress("10.9.8.1", 30)
-                .addRoute("0.0.0.0", 0)
-                .addRoute("::", 0)
                 .addDnsServer("1.1.1.1")
                 .addDnsServer("8.8.8.8")
+            
+            // CRITICAL FIX: Исключаем само приложение из VPN (UI процесс)
             try { builder.addDisallowedApplication(packageName) } catch (_: Exception) {}
+            
+            // CRITICAL FIX: Split tunneling — исключаем IP сервера из VPN routing
+            // Вместо addRoute("0.0.0.0", 0) добавляем все маршруты КРОМЕ IP сервера
+            // Это гарантирует, что трафик sing-box к серверу идёт через физическую сеть
+            addRoutesExcludingServer(builder, "38.180.253.219")
+            
+            // CRITICAL FIX: IPv6 только если поддерживается
+            if (hasIPv6Connectivity()) {
+                try {
+                    builder.addRoute("::", 0)
+                } catch (_: Exception) {}
+            }
 
             val pfd = builder.establish()
                 ?: throw IllegalStateException("VPN establish() returned null")
@@ -257,6 +271,9 @@ class SingboxVpnService : VpnService() {
 
         // 4. Заменяем route полностью:
         //    geoip/geosite удалены в sing-box 1.12.0 — API-route использовать нельзя
+        // CRITICAL FIX: Убраны auto_detect_interface=true и default_mark=0x10000
+        // auto_detect_interface усугубляет loopback (определяет tun0 как основной)
+        // default_mark не работает без root (требует ip rule add fwmark)
         api.put("route", JSONObject().apply {
             put("rules", JSONArray().apply {
                 put(JSONObject().apply {
@@ -267,10 +284,18 @@ class SingboxVpnService : VpnService() {
                     })
                     put("outbound", "direct")
                 })
+                // CRITICAL FIX: IP сервера — напрямую (дополнительная защита от loopback)
+                put(JSONObject().apply {
+                    put("ip_cidr", JSONArray().apply {
+                        put("38.180.253.219/32")
+                    })
+                    put("outbound", "direct")
+                })
             })
             put("final", finalTag)
-            put("auto_detect_interface", true)
-            put("default_mark", 0x10000)  // Обход VPN: помечаем трафик sing-box
+            // CRITICAL FIX: auto_detect_interface=false (не определяем интерфейс автоматически)
+            put("auto_detect_interface", false)
+            // CRITICAL FIX: default_mark убран — не работает без root
             put("default_domain_resolver", "remote")  // обязателен в 1.12+ при >1 DNS сервере
         })
 
@@ -292,6 +317,93 @@ class SingboxVpnService : VpnService() {
 
         Log.d(TAG, "Final sing-box config: ${api.toString(2).take(500)}...")
         return api.toString(2)
+    }
+
+    // ── Split tunneling helpers ──────────────────────────────────────────────────
+
+    /**
+     * CRITICAL FIX: Split tunneling через разбиение маршрутов.
+     *
+     * Вместо addRoute("0.0.0.0", 0) добавляем все маршруты КРОМЕ IP сервера.
+     * Это гарантирует, что трафик sing-box к серверу идёт через физическую сеть,
+     * минуя TUN интерфейс.
+     *
+     * Алгоритм: покрываем 0.0.0.0/0 набором подсетей, исключая /32 сервера.
+     */
+    private fun addRoutesExcludingServer(builder: Builder, excludeIp: String) {
+        val serverAddr = java.net.InetAddress.getByName(excludeIp)
+        val serverBytes = serverAddr.address
+        val serverInt = ((serverBytes[0].toInt() and 0xFF) shl 24) or
+                        ((serverBytes[1].toInt() and 0xFF) shl 16) or
+                        ((serverBytes[2].toInt() and 0xFF) shl 8) or
+                         (serverBytes[3].toInt() and 0xFF)
+
+        // Генерируем маршруты покрывающие 0.0.0.0/0 минус serverIp/32
+        val routes = generateRoutesExcluding(0, 0, serverInt)
+
+        var addedCount = 0
+        for ((addr, prefix) in routes) {
+            try {
+                val ipStr = intToIpString(addr)
+                builder.addRoute(ipStr, prefix)
+                addedCount++
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to add route: ${e.message}")
+            }
+        }
+
+        Log.d(TAG, "Added $addedCount routes excluding $excludeIp")
+    }
+
+    /**
+     * Рекурсивно генерирует список подсетей, покрывающих
+     * networkAddr/prefix минус excludeIp/32.
+     */
+    private fun generateRoutesExcluding(
+        networkAddr: Int,
+        prefix: Int,
+        excludeIp: Int
+    ): List<Pair<Int, Int>> {
+        if (prefix == 32) {
+            return if (networkAddr == excludeIp) emptyList()
+            else listOf(Pair(networkAddr, 32))
+        }
+
+        val mask = if (prefix == 0) 0 else (-1 shl (32 - prefix))
+        val networkStart = networkAddr and mask
+        val networkEnd = networkStart or mask.inv()
+
+        if (excludeIp < networkStart || excludeIp > networkEnd) {
+            return listOf(Pair(networkStart, prefix))
+        }
+
+        val halfPrefix = prefix + 1
+        val halfSize = 1 shl (32 - halfPrefix)
+        val firstHalf = networkStart
+        val secondHalf = networkStart + halfSize
+
+        return generateRoutesExcluding(firstHalf, halfPrefix, excludeIp) +
+               generateRoutesExcluding(secondHalf, halfPrefix, excludeIp)
+    }
+
+    private fun intToIpString(ip: Int): String {
+        return "${(ip shr 24) and 0xFF}.${(ip shr 16) and 0xFF}" +
+               ".${(ip shr 8) and 0xFF}.${ip and 0xFF}"
+    }
+
+    /**
+     * Проверяет наличие IPv6 connectivity.
+     * На некоторых устройствах Xiaomi добавление IPv6 route без connectivity вызывает сбои.
+     */
+    private fun hasIPv6Connectivity(): Boolean {
+        return try {
+            val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return false
+            val network = cm.activeNetwork ?: return false
+            val lp = cm.getLinkProperties(network) ?: return false
+            lp.linkAddresses.any { it.address is java.net.Inet6Address }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     // ── Notification ──────────────────────────────────────────────────────────

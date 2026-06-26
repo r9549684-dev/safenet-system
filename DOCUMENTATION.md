@@ -290,7 +290,7 @@ C:\Users\53\Projects\SafeService\
 ### Docker-контейнеры
 - `infra-api-1` — FastAPI (порт 8000 внутри, 8500 наружу)
 - `infra-db-1` — PostgreSQL 15 (только внутри сети)
-- `infra-caddy-1` — Caddy (80/443, SSL для `api.loveaibot.net`)
+- `infra-caddy-1` — Caddy (80/443, SSL для `safenetsystem.duckdns.org`)
 
 ### WireGuard
 - Интерфейс: `wg0`, пул: `10.8.0.1/24`, порт: **`443/UDP`** (изменён с 51820, 25.02.2026 — операторы IR/AE/TR блокировали 51820)
@@ -517,7 +517,7 @@ AI-агент работает на Android-телефоне (Termux + Python + 
 ```
 Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
                       ↓ JWT
-         https://api.loveaibot.net/support/*
+         https://safenetsystem.duckdns.org/support/*
          GET /users/me  (контекст: premium/trial/partner)
 ```
 
@@ -643,7 +643,7 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 
 ## 🛠 Контакты и доступы
 - **GitHub:** https://github.com/r9549684-dev/safenet-service (Private)
-- **API (prod):** https://api.loveaibot.net
+- **API (prod):** https://safenetsystem.duckdns.org
 - **API (direct):** http://89.208.107.67:8500
 - **Разработчик:** Warp Agent
 
@@ -702,7 +702,7 @@ Flutter → [Cloudflare Tunnel → телефон (Termux + Python)]
 
 **Актуальный релиз:** APK v1.3.1
 **Ссылка для скачивания (GitHub, приватный):** https://github.com/r9549684-dev/safenet-service/releases/download/v1.3.1/SafeNet-v1.3.1.apk
-**Актуальная публичная ссылка:** https://api.loveaibot.net/download/app
+**Актуальная публичная ссылка:** https://safenetsystem.duckdns.org/download/app
 **Версия на сервере (`GET /app/version`):** `{"version":"1.3.1","version_code":4}`
 
 ---

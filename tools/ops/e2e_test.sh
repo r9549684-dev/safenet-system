@@ -1,5 +1,5 @@
 #!/bin/bash
-BASE="https://api.loveaibot.net"
+BASE="https://safenetsystem.duckdns.org"
 CB_TOKEN=$(grep '^CRYPTOBOT_TOKEN=' /opt/safenet-v2/infra/.env | cut -d'=' -f2-)
 
 echo "=== STEP 1: Auth ==="

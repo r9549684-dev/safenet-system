@@ -37,8 +37,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    print('[HOME] initState called');
     final service  = context.read<VpnProvider>();
     final auth = context.read<AuthProvider>();
+    print('[HOME] service.status=${service.status}, auth.state=${auth.state}');
     Future.microtask(() async {
       if (!mounted) return;
       await service.loadServers();
@@ -113,10 +115,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             error: service.error,
                             onUpgradeTap: () => setState(() => _tab = 2),
                             onToggle: () async {
+                              print('[HOME] onToggle called: status=${service.status}');
                               if (service.status == VpnStatus.connected ||
                                   service.status == VpnStatus.error) {
-                              if (service.status == VpnStatus.error) {
-                              final auth = context.read<AuthProvider>();
+                                service.disconnect();
+                              } else if (service.status == VpnStatus.disconnected) {
+                                print('[HOME] calling connect()');
+                                final auth = context.read<AuthProvider>();
                                 final isPremium = auth.user?.hasAccess ?? true;
                                 service.connect(
                                   countryCode: countryCode,
@@ -127,20 +132,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   },
                                 );
                               } else {
-                                service.disconnect();
+                                print('[HOME] status is ${service.status}, not calling connect()');
                               }
-                            } else if (service.status == VpnStatus.disconnected) {
-                              final auth = context.read<AuthProvider>();
-                              final isPremium = auth.user?.hasAccess ?? true;
-                              service.connect(
-                                countryCode: countryCode,
-                                mode: _mode,
-                                isPremium: isPremium,
-                                onShowPaywall: () {
-                                  if (mounted) _showPaymentSheet(context);
-                                },
-                              );
-                            }
                             },
                             onModeChange: (m) => setState(() => _mode = m),
                           ),
@@ -453,7 +446,7 @@ class _HomeTab extends StatelessWidget {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(12)),
                               child: QrImageView(
-                                data: 'https://api.loveaibot.net/download/app?ref=$code',
+                                data: 'https://safenetsystem.duckdns.org/download/app?ref=$code',
                                 version: QrVersions.auto,
                                 size: 80,
                                 backgroundColor: Colors.white,
@@ -473,7 +466,7 @@ class _HomeTab extends StatelessWidget {
                                 const SizedBox(height: 8),
                                 GestureDetector(
                                   onTap: () {
-                                    final url = 'https://api.loveaibot.net/download/app?ref=$code';
+                                    final url = 'https://safenetsystem.duckdns.org/download/app?ref=$code';
                                     Clipboard.setData(ClipboardData(text: url));
                                     ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
                                       content: Text(ll.linkCopied),

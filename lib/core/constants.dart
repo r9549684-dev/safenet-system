@@ -1,7 +1,7 @@
 class AppConstants {
   // API
   // All-in-One MVP VPS (38.180.253.219)
-  static const String apiBaseUrl = 'http://38.180.253.219:8001';
+  static const String apiBaseUrl = 'https://safenetsystem.duckdns.org';
   static const Duration connectTimeout = Duration(seconds: 12);
   static const Duration receiveTimeout = Duration(seconds: 15);
 

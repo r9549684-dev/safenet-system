@@ -24,6 +24,6 @@ flutter run
 ```
 
 ## API
-- **Prod:** https://api.loveaibot.net
+- **Prod:** https://safenetsystem.duckdns.org
 - **Direct:** http://89.208.107.67:8500
 - **Docs:** [DOCUMENTATION.md](./DOCUMENTATION.md)

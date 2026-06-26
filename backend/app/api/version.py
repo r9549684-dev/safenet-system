@@ -24,7 +24,7 @@ _CURRENT_VERSION = AppVersionResponse(
     version="1.3.2",
     version_code=5,
     force_update=False,
-    download_url="https://api.loveaibot.net/download/app",
+    download_url="https://safenetsystem.duckdns.org/download/app",
     changelog="Fix: реферальные ссылки исправлены. QR-код и кнопка 'Копировать' теперь работают.",
 )
 

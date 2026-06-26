@@ -1,4 +1,4 @@
-api.loveaibot.net {
+safenetsystem.duckdns.org {
     encode zstd gzip
 
     reverse_proxy api:8000

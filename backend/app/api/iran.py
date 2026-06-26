@@ -25,8 +25,8 @@ router = APIRouter(prefix="/iran", tags=["iran"])
 
 def _xray_params() -> dict:
     return {
-        "server":     "api.loveaibot.net",
-        "port":       int(getattr(settings, "XRAY_PORT", 2053)),
+        "server":     "safenetsystem.duckdns.org",
+        "port":       int(getattr(settings, "XRAY_PORT", 8443)),
         "uuid":       getattr(settings, "XRAY_UUID", ""),
         "public_key": getattr(settings, "XRAY_PUBLIC_KEY", ""),
         "short_id":   getattr(settings, "XRAY_SHORT_ID", ""),
@@ -141,7 +141,7 @@ async def subscribe(
 
     if fmt == "hiddify":
         from fastapi.responses import RedirectResponse
-        sub_url = f"https://api.loveaibot.net/iran/subscribe/{token}?fmt=base64"
+        sub_url = f"https://safenetsystem.duckdns.org/iran/subscribe/{token}?fmt=base64"
         deep = f"hiddify://import/{quote(sub_url, safe='')}"
         return {"hiddify_deeplink": deep, "sub_url": sub_url}
 
@@ -176,7 +176,7 @@ async def generate_user_iran_config(
     Возвращает:
     - vless_url:        vless://...
     - hiddify_deeplink: hiddify://import/...
-    - sub_url:          https://api.loveaibot.net/iran/subscribe/{token}
+    - sub_url:          https://safenetsystem.duckdns.org/iran/subscribe/{token}
     - singbox_config:   {...} sing-box JSON
     """
     device_id = body.get("device_id", "")
@@ -193,7 +193,7 @@ async def generate_user_iran_config(
 
     vless_url = build_vless_uri(p, tag=tag)
     token     = str(user.device_id)[:16]
-    sub_url   = f"https://api.loveaibot.net/iran/subscribe/{token}"
+    sub_url   = f"https://safenetsystem.duckdns.org/iran/subscribe/{token}"
     hiddify   = f"hiddify://import/{quote(sub_url, safe='')}"
 
     return {

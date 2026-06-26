@@ -8,7 +8,7 @@ const bundleSingbox = bool.fromEnvironment('BUNDLE_HIDDIFY', defaultValue: false
 
 class SingboxVpn {
   static const _channel = MethodChannel('com.safenet.vpn/singbox');
-  static const _apiBase = 'https://api.loveaibot.net';
+  static const _apiBase = 'https://safenetsystem.duckdns.org';
 
   /// Взять singbox config из очереди (удалить из головы), при пустой — сеть.
   static Future<String?> fetchConfig(String deviceId) async {

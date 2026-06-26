@@ -13,6 +13,8 @@ from .admin import router as admin_router
 from .payments_admin import router as payments_admin_router
 from .subscriptions import router as subscriptions_router
 from .ano import router as ano_router
+from .config import router as config_router
+from .iran import router as iran_router
 
 __all__ = [
     "health_router",
@@ -30,4 +32,6 @@ __all__ = [
     "payments_admin_router",
     "subscriptions_router",
     "ano_router",
+    "config_router",
+    "iran_router",
 ]

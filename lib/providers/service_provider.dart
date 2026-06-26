@@ -102,6 +102,7 @@ class VpnProvider extends ChangeNotifier {
     bool isPremium = false,
     void Function()? onShowPaywall,
   }) async {
+    print('[VPN] connect() called: mode=$mode, isPremium=$isPremium, countryCode=$countryCode');
     _isUnlimitedSession = isPremium;
     // Авто-регистрация если нет токена
     final token = await SecureStorage.getToken();
@@ -133,6 +134,7 @@ class VpnProvider extends ChangeNotifier {
     _status = VpnStatus.connecting;
     _error  = null;
     notifyListeners();
+    print('[VPN] status changed to connecting');
 
     try {
       // VLESS+Reality+Fragment (sing-box, только China/Iran билд)

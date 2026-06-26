@@ -1,5 +1,5 @@
 #!/bin/bash
-BASE="https://api.loveaibot.net"
+BASE="https://safenetsystem.duckdns.org"
 
 echo "=== Auth ==="
 TOKEN_RESP=$(curl -s -X POST "$BASE/auth/device" \
