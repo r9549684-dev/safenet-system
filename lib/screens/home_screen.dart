@@ -22,6 +22,7 @@ import 'support_screen.dart';
 import '../services/update_checker.dart';
 import '../core/singbox_service.dart' show SingboxVpn, bundleSingbox;
 import '../core/pricing_service.dart';
+import '../core/trojan_proxy_test.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1226,6 +1227,69 @@ class _SettingsTabState extends State<_SettingsTab> {
                     ),
                   ),
                 ]),
+              ),
+              const SizedBox(height: 24),
+              _sectionLabel('Debug'),
+              _GlassCard(
+                padding: EdgeInsets.zero,
+                child: ListTile(
+                  leading: const Text('🧪', style: TextStyle(fontSize: 20)),
+                  title: const Text('Test Trojan (Proxy Mode)',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                  subtitle: const Text('Проверить Trojan через HTTP proxy',
+                    style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                  trailing: const Icon(Icons.play_arrow_rounded, size: 20, color: AppTheme.success),
+                  onTap: () async {
+                    final vpn = ctx.read<VpnProvider>();
+                    final server = vpn.selected ?? vpn.active ?? vpn.servers.firstOrNull;
+                    if (server == null) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                        content: Text('Сначала выберите сервер'),
+                      ));
+                      return;
+                    }
+
+                    final trojanConfig = {
+                      'address': '38.180.253.219',
+                      'port': 4443,
+                      'password': 'e3f49e4af6f64785',
+                      'sni': 'www.microsoft.com',
+                      'insecure': true,
+                    };
+
+                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                      content: Text('Запуск теста Trojan...'),
+                      duration: Duration(seconds: 2),
+                    ));
+
+                    final result = await TrojanProxyTest.testTrojanConnection(trojanConfig);
+
+                    if (ctx.mounted) {
+                      showDialog(
+                        context: ctx,
+                        builder: (d) => AlertDialog(
+                          backgroundColor: AppTheme.surface,
+                          title: Text(
+                            result ? '✅ Trojan работает!' : '❌ Trojan не работает',
+                            style: TextStyle(color: result ? AppTheme.success : AppTheme.error),
+                          ),
+                          content: Text(
+                            result
+                                ? 'HTTP запрос прошёл через Trojan proxy. DPI обходит!'
+                                : 'Не удалось подключиться к Trojan. Проверьте логи.',
+                            style: const TextStyle(color: AppTheme.textSecondary),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(d),
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  },
+                ),
               ),
               const SizedBox(height: 32),
               SizedBox(

@@ -22,8 +22,8 @@ from app.models.user import User
 from app.models.connection import UserConnection, ConnectionStatus
 from app.models.node_metrics import NodeMetrics
 from app.services.wireguard import WireGuardService
-from app.services.xray import get_vless_config
-from app.services.xray_models import VlessRealityParams
+from app.services.xray import get_vless_config, get_trojan_config
+from app.services.xray_models import VlessRealityParams, TrojanParams
 from app.services.entitlements import is_user_premium, has_trial
 from app.utils.security import decode_token
 from app.services.ano.node_ranker import NodeRanker
@@ -42,7 +42,8 @@ class VpnConnectResponse(BaseModel):
     byedpi_profile: dict[str, Any]
     mode: str  # "hybrid" | "amnezia_only"
     vless_config: VlessRealityParams
-    primary_protocol: str = "awg"  # "vless" | "awg" — какой протокол клиент должен попробовать первым
+    trojan_config: TrojanParams | None = None
+    primary_protocol: str = "trojan"  # "trojan" | "vless" | "awg" — какой протокол клиент должен попробовать первым
     show_paywall: bool = False  # true на 2-м, 4-м... подключении после истечения триала
     status: str = "ACTIVE" # Для обратной совместимости
 
@@ -56,7 +57,8 @@ class VpnConfigItem(BaseModel):
     byedpi_profile: dict[str, Any]
     mode: str
     vless_config: VlessRealityParams
-    primary_protocol: str = "awg"  # "vless" | "awg"
+    trojan_config: TrojanParams | None = None
+    primary_protocol: str = "trojan"  # "trojan" | "vless" | "awg"
     status: str  # ACTIVE или STANDBY
 
 
@@ -218,6 +220,9 @@ async def connect_vpn(
 
     # 9. VLESS+Reality конфиг (фолбэк-режим)
     vless_config = get_vless_config(server_ip=server.host)
+    
+    # 10. Trojan+TLS конфиг (основной — обходит DPI)
+    trojan_config = get_trojan_config(server_ip=server.host)
 
     return VpnConnectResponse(
         server_id=server.id,
@@ -227,6 +232,8 @@ async def connect_vpn(
         byedpi_profile=byedpi_profile,
         mode=mode,
         vless_config=vless_config,
+        trojan_config=trojan_config,
+        primary_protocol="trojan",
         show_paywall=show_paywall,
     )
 
@@ -345,6 +352,7 @@ async def smart_connect(
     strict_countries = {"TR", "EG", "AE", "SA", "IR", "CN", "RU"}
     mode = "hybrid" if server.country.upper() in strict_countries else "amnezia_only"
     vless_config = get_vless_config(server_ip=server.host)
+    trojan_config = get_trojan_config(server_ip=server.host)
 
     return VpnConnectResponse(
         server_id=server.id,
@@ -354,6 +362,8 @@ async def smart_connect(
         byedpi_profile=byedpi_profile,
         mode=mode,
         vless_config=vless_config,
+        trojan_config=trojan_config,
+        primary_protocol="trojan",
         show_paywall=show_paywall,
     )
 
@@ -397,7 +407,8 @@ async def _build_config_item(
     strict_countries = {"TR", "EG", "AE", "SA", "IR", "CN", "RU"}
     mode = "hybrid" if server.country.upper() in strict_countries else "amnezia_only"
     vless_config = get_vless_config(server_ip=server.host)
-    primary_protocol = "vless" if vless_config.uuid else "awg"
+    trojan_config = get_trojan_config(server_ip=server.host)
+    primary_protocol = "trojan" if trojan_config.password else ("vless" if vless_config.uuid else "awg")
 
     return VpnConfigItem(
         server_id=server.id,
@@ -407,6 +418,7 @@ async def _build_config_item(
         byedpi_profile=byedpi_profile,
         mode=mode,
         vless_config=vless_config,
+        trojan_config=trojan_config,
         primary_protocol=primary_protocol,
         status=target_status.value,
     )
@@ -443,6 +455,7 @@ async def get_connection_pool(
         mode = "hybrid" if server.country.upper() in strict_countries else "amnezia_only"
         
         vless_cfg = get_vless_config(server_ip=server.host)
+        trojan_cfg = get_trojan_config(server_ip=server.host)
         configs.append(VpnConfigItem(
             server_id=server.id,
             server_country=server.country,
@@ -451,7 +464,8 @@ async def get_connection_pool(
             byedpi_profile=WireGuardService.get_byedpi_profile(server.country),
             mode=mode,
             vless_config=vless_cfg,
-            primary_protocol="vless" if vless_cfg.uuid else "awg",
+            trojan_config=trojan_cfg,
+            primary_protocol="trojan" if trojan_cfg.password else ("vless" if vless_cfg.uuid else "awg"),
             status=conn.status.value,
         ))
 

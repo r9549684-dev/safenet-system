@@ -10,6 +10,7 @@ import '../services/service_service.dart';
 import '../services/amo_pool_service.dart';
 import '../core/singbox_service.dart';
 import '../core/vless_to_singbox.dart';
+import '../core/trojan_to_singbox.dart';
 import '../core/config_cache_service.dart';
 import '../core/constants.dart';
 
@@ -135,26 +136,39 @@ class VpnProvider extends ChangeNotifier {
 
     try {
       // VLESS+Reality+Fragment (sing-box, только China/Iran билд)
+      // PATH #1: fast cold-start через предзагруженную очередь.
+      //          При любом сбое — сброс partial state и fall-through к AMO pool.
       if (mode == 'hybrid' && bundleSingbox) {
-        final deviceId = await SecureStorage.getDeviceId() ?? '';
-        if (deviceId.isEmpty) throw 'Device ID не найден';
-
-        // Взять конфиг из головы очереди
-        var sbConfig = await SingboxVpn.fetchConfig(deviceId);
-        if (sbConfig == null) throw 'Не удалось загрузить VLESS конфиг';
-
-        // Попытка подключения + тихий failover
-        var ok = await SingboxVpn.start(sbConfig);
-        if (!ok) {
-          final nextCfg = await SingboxVpn.fetchNextConfig(deviceId);
-          if (nextCfg != null) ok = await SingboxVpn.start(nextCfg);
+        try {
+          final deviceId = await SecureStorage.getDeviceId() ?? '';
+          if (deviceId.isNotEmpty) {
+            var sbConfig = await SingboxVpn.fetchConfig(deviceId).timeout(
+              const Duration(seconds: 5),
+              onTimeout: () => null,
+            );
+            if (sbConfig != null) {
+              var ok = await SingboxVpn.start(sbConfig);
+              if (!ok) {
+                final nextCfg = await SingboxVpn.fetchNextConfig(deviceId);
+                if (nextCfg != null) ok = await SingboxVpn.start(nextCfg);
+              }
+              if (ok) {
+                _usingSingbox = true;
+                _finishConnect();
+                SingboxVpn.consumeAndRefreshCache(deviceId); // fire-and-forget
+                return;
+              }
+            }
+          }
+          // PATH #1 не смог получить/запустить конфиг — идём в AMO pool
+          print('[VLESS] PATH #1 cold-start failed — falling through to AMO pool');
+        } catch (e) {
+          print('[VLESS] PATH #1 exception: $e — falling through to AMO pool');
+        } finally {
+          // Сброс partial state, чтобы PATH #2 не унаследовал мусор
+          _error = null;
+          _usingSingbox = false;
         }
-        if (!ok) throw 'Ошибка запуска VLESS+Reality';
-
-        _usingSingbox = true;
-        _finishConnect();
-        SingboxVpn.consumeAndRefreshCache(deviceId); // fire-and-forget
-        return;
       }
 
       // SafeNet AMO: Пытаемся получить пул конфигов для бесшовного фэйловера
@@ -183,11 +197,27 @@ class VpnProvider extends ChangeNotifier {
             );
           }
 
-          // VLESS-first: если backend пометил primary_protocol=vless — пробуем singbox
-          final primaryProtocol = activeConfig['primary_protocol'] as String? ?? 'awg';
+          // Trojan-first: обходит DPI, маскируется под HTTPS
+          final trojanConfig = activeConfig['trojan_config'] as Map<String, dynamic>?;
+          if (trojanConfig != null &&
+              TrojanSingboxConverter.isValid(trojanConfig)) {
+            try {
+              final singboxJson = TrojanSingboxConverter.toSingboxJson(trojanConfig);
+              final ok = await SingboxVpn.start(singboxJson);
+              if (ok) {
+                _usingSingbox = true;
+                _finishConnect();
+                return;
+              }
+              print('[TROJAN] SingboxVpn.start() failed — fallback to VLESS');
+            } catch (e) {
+              print('[TROJAN] convert/start error: $e — fallback to VLESS');
+            }
+          }
+
+          // VLESS-second: Reality+Fragment
           final vlessConfig = activeConfig['vless_config'] as Map<String, dynamic>?;
-          if (primaryProtocol == 'vless' &&
-              vlessConfig != null &&
+          if (vlessConfig != null &&
               VlessSingboxConverter.isValid(vlessConfig)) {
             try {
               final singboxJson = VlessSingboxConverter.toSingboxJson(vlessConfig);

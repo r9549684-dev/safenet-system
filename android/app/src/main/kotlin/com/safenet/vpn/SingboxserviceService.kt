@@ -218,7 +218,6 @@ class SingboxVpnService : VpnService() {
             put(JSONObject().apply {
                 put("type", "mixed"); put("tag", "mixed-in")
                 put("listen", "127.0.0.1"); put("listen_port", SOCKS5_PORT)
-                put("sniff", true)
             })
         })
 
@@ -271,6 +270,7 @@ class SingboxVpnService : VpnService() {
             })
             put("final", finalTag)
             put("auto_detect_interface", true)
+            put("default_mark", 0x10000)  // Обход VPN: помечаем трафик sing-box
             put("default_domain_resolver", "remote")  // обязателен в 1.12+ при >1 DNS сервере
         })
 

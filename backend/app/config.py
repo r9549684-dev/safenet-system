@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     XRAY_SHORT_ID: str = ""
     XRAY_PORT: int = 2053
 
+    # Xray / Trojan+TLS
+    TROJAN_PASSWORD: str = ""
+    TROJAN_PORT: int = 4443
+
     # Admin secret for admin endpoints
     ADMIN_SECRET: str = ""
     # Agent secret for Felix bot (POST /support/agent-message)

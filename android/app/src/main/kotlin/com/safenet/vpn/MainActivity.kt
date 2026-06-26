@@ -19,6 +19,7 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL          = "com.safenet.vpn/methods"
     private val INSTALLER_CHANNEL = "com.safenet.safenet_vpn/installer"
     private val SINGBOX_CHANNEL   = "com.safenet.vpn/singbox"
+    private val PROXY_CHANNEL     = "com.safenet.vpn/singbox_proxy"
     private val VPN_PERMISSION_CODE = 1001
     private val VPN_PERM_SINGBOX    = 1002
     private val TAG = "MainActivity"
@@ -105,6 +106,35 @@ class MainActivity : FlutterActivity() {
                     "status" -> result.success(mapOf(
                         "running" to SingboxVpnService.isRunning,
                         "error"   to (SingboxVpnService.lastError ?: "")
+                    ))
+                    else -> result.notImplemented()
+                }
+            }
+
+        // ── Singbox Proxy Test Channel ────────────────────────────────
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PROXY_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "start" -> {
+                        val cfg = call.argument<String>("config")
+                        if (cfg.isNullOrBlank()) {
+                            result.error("NO_CONFIG", "outbounds JSON required", null)
+                            return@setMethodCallHandler
+                        }
+                        startService(Intent(this, SingboxProxyService::class.java).apply {
+                            action = SingboxProxyService.ACTION_START
+                            putExtra(SingboxProxyService.EXTRA_OUTBOUNDS_JSON, cfg)
+                        })
+                        result.success(mapOf("status" to "starting"))
+                    }
+                    "stop" -> {
+                        startService(Intent(this, SingboxProxyService::class.java).apply {
+                            action = SingboxProxyService.ACTION_STOP
+                        })
+                        result.success(true)
+                    }
+                    "status" -> result.success(mapOf(
+                        "running" to SingboxProxyService.isRunning
                     ))
                     else -> result.notImplemented()
                 }

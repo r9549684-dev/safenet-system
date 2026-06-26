@@ -31,12 +31,24 @@ class VlessSecurity(str, Enum):
     REALITY = "reality"
 
 
+class AllowedSNI(str, Enum):
+    """Allowed SNI values for anti-censorship.
+
+    Russia (PRIMARY): google.com, cloudflare.com (trusted by TSPU)
+    Others: microsoft.com, apple.com (global CDN, trusted)
+    """
+    GOOGLE = "www.google.com"
+    CLOUDFLARE = "www.cloudflare.com"
+    MICROSOFT = "www.microsoft.com"
+    APPLE = "www.apple.com"
+
+
 class RealityOpts(BaseModel):
     """Reality-параметры (подблок tls.reality + tls.utls)."""
 
     public_key: str = Field(..., min_length=1)
     short_id: str = Field(..., min_length=1)
-    server_name: str = Field(default="www.microsoft.com", min_length=1)
+    server_name: AllowedSNI = Field(default=AllowedSNI.MICROSOFT)
     fingerprint: str = Field(default="chrome", min_length=1)
 
     @field_validator("short_id")
@@ -105,7 +117,7 @@ class VlessRealityParams(BaseModel):
             "flow": self.flow.value,
             "tls": {
                 "enabled": True,
-                "server_name": self.reality_opts.server_name,
+                "server_name": self.reality_opts.server_name.value,
                 "utls": {
                     "enabled": True,
                     "fingerprint": self.reality_opts.fingerprint,
@@ -116,5 +128,105 @@ class VlessRealityParams(BaseModel):
                     "short_id": self.reality_opts.short_id,
                 },
                 "fragment": self.fragment.model_dump(exclude_none=True),
+            },
+        }
+
+
+class TrojanParams(BaseModel):
+    """Trojan+TLS конфиг для клиента.
+
+    Trojan маскируется под обычный HTTPS трафик, обходя DPI.
+    
+    RISK: insecure=True отключает проверку TLS-сертификата (MITM уязвимость).
+    Для production рекомендуется использовать certificate_fingerprint для pinning.
+    """
+
+    protocol: Literal["trojan"] = "trojan"
+    address: str = Field(..., min_length=1)
+    port: int = Field(..., ge=1, le=65535)
+    password: str = Field(..., min_length=1)
+    sni: AllowedSNI = Field(default=AllowedSNI.MICROSOFT)
+    insecure: bool = Field(default=False)
+    certificate_fingerprint: str | None = Field(default=None)
+
+    def to_singbox_outbound(self, *, server: str | None = None, tag: str = "proxy") -> dict:
+        """Собирает sing-box outbound-блок для Trojan."""
+        addr = server or self.address
+        tls_config = {
+            "enabled": True,
+            "server_name": self.sni.value,
+            "insecure": self.insecure,
+        }
+        if self.certificate_fingerprint:
+            tls_config["certificate_fingerprint"] = self.certificate_fingerprint
+        return {
+            "type": "trojan",
+            "tag": tag,
+            "server": addr,
+            "server_port": self.port,
+            "password": self.password,
+            "tls": tls_config,
+        }
+
+
+class AmneziaWGParams(BaseModel):
+    """AmneziaWG (обфусцированный WireGuard) конфиг для клиента.
+
+    AmneziaWG — это обфусцированный WireGuard для обхода DPI.
+    Использует UDP с обфускацией для маскировки под обычный трафик.
+    
+    WARNING: В России AmneziaWG блокируется DPI (data-plane мёртв).
+    Используется только как fallback_2 после VLESS и Trojan.
+    
+    Обфускация:
+    - Jc (Junk packets): случайные пакеты для маскировки
+    - Jmin, Jmax: минимальный/максимальный размер junk packets
+    - S1, S2: размеры обфусцированных пакетов
+    - H1, H2, H3: хэши для обфускации
+    """
+
+    protocol: Literal["amneziawg"] = "amneziawg"
+    address: str = Field(..., min_length=1)
+    port: int = Field(..., ge=1, le=65535)
+    private_key: str = Field(..., min_length=1)
+    public_key: str = Field(..., min_length=1)
+    preshared_key: str | None = Field(default=None)
+    ip: str = Field(default="10.0.0.2")
+    dns: list[str] = Field(default_factory=lambda: ["1.1.1.1", "8.8.8.8"])
+    mtu: int = Field(default=1420)
+    
+    # AmneziaWG obfuscation params
+    jc: int = Field(default=3, ge=1, le=10)
+    jmin: int = Field(default=50, ge=10, le=1000)
+    jmax: int = Field(default=1000, ge=100, le=10000)
+    s1: int = Field(default=55, ge=1, le=100)
+    s2: int = Field(default=110, ge=1, le=200)
+    h1: int = Field(default=123456789, ge=1)
+    h2: int = Field(default=987654321, ge=1)
+    h3: int = Field(default=112233445, ge=1)
+
+    def to_singbox_outbound(self, *, server: str | None = None, tag: str = "proxy") -> dict:
+        """Собирает sing-box outbound-блок для AmneziaWG."""
+        addr = server or self.address
+        return {
+            "type": "wireguard",
+            "tag": tag,
+            "server": addr,
+            "server_port": self.port,
+            "local_address": [self.ip],
+            "private_key": self.private_key,
+            "peer_public_key": self.public_key,
+            "pre_shared_key": self.preshared_key,
+            "dns_servers": self.dns,
+            "mtu": self.mtu,
+            "amnezia": {
+                "jc": self.jc,
+                "jmin": self.jmin,
+                "jmax": self.jmax,
+                "s1": self.s1,
+                "s2": self.s2,
+                "h1": self.h1,
+                "h2": self.h2,
+                "h3": self.h3,
             },
         }
