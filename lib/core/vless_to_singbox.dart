@@ -47,26 +47,9 @@ class VlessSingboxConverter {
       },
     };
 
-    // Fragment: sing-box требует tls.fragment (не top-level outbound).
-    final fragment = vlessConfig['fragment'] as Map?;
-    if (fragment != null && fragment.isNotEmpty) {
-      final fragmentBlock = <String, dynamic>{};
-      final packets = fragment['packets'];
-      if (packets != null && packets is String && packets.isNotEmpty) {
-        fragmentBlock['packets'] = packets;
-      }
-      final length = fragment['length'];
-      if (length != null && length is String && length.isNotEmpty) {
-        fragmentBlock['length'] = length;
-      }
-      final interval = fragment['interval'];
-      if (interval != null && interval is String && interval.isNotEmpty) {
-        fragmentBlock['interval'] = interval;
-      }
-      if (fragmentBlock.isNotEmpty) {
-        tlsBlock['fragment'] = fragmentBlock;
-      }
-    }
+    // Fragment: sing-box требует tls.fragment как boolean (не объект!)
+    // Включаем TLS fragmentation для обхода DPI
+    tlsBlock['fragment'] = true;
 
     final outbound = <String, dynamic>{
       'type': 'vless',
