@@ -1,3 +1,4 @@
+# DEPRECATED — используйте: .\build.ps1 -Flavor standard
 # build_standard.ps1 — стандартный лёгкий APK (~5 MB, без Hiddify)
 # Использование: .\build_standard.ps1
 

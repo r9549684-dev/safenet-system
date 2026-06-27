@@ -1,3 +1,4 @@
+# DEPRECATED — используйте: .\build.ps1 -Flavor china
 # build_china.ps1 — China APK (VLESS+Reality+Fragment + AmneziaWG + ByeDPI)
 # Использование: .\build_china.ps1
 # Временно помещает sing-box в jniLibs/arm64-v8a/libsingbox.so,

@@ -1,3 +1,4 @@
+# DEPRECATED — используйте: .\build.ps1 -Flavor iran
 # build_iran.ps1 — Iran APK (sing-box bundled as native lib)
 # Использование: .\build_iran.ps1
 # Временно помещает sing-box в jniLibs/arm64-v8a/libsingbox.so,

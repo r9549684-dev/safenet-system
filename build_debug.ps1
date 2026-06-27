@@ -1,3 +1,4 @@
+# DEPRECATED — используйте: .\build.ps1 -Flavor debug
 # build_debug.ps1 — debug APK для тестирования Trojan
 # Использование: .\build_debug.ps1
 
