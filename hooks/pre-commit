@@ -1,0 +1,21 @@
+# hooks/pre-commit — блокирует хардкод IP в constants.dart
+# Установка: git config core.hooksPath ./hooks
+
+#!/bin/sh
+
+STAGED=$(git diff --cached lib/core/constants.dart)
+
+if echo "$STAGED" | grep -qE "http://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"; then
+    echo "❌ Хардкод IP в constants.dart запрещён!"
+    echo "Используйте: String.fromEnvironment('API_BASE_URL', defaultValue: '...')"
+    echo "Передавайте IP через: --dart-define=API_BASE_URL=http://..."
+    exit 1
+fi
+
+if echo "$STAGED" | grep -qE "https://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"; then
+    echo "❌ Хардкод IP в constants.dart запрещён!"
+    echo "Используйте: String.fromEnvironment('API_BASE_URL', defaultValue: '...')"
+    exit 1
+fi
+
+exit 0

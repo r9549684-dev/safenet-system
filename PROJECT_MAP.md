@@ -145,5 +145,100 @@ LEGACY:    WireGuard (UDP 51820)
 
 ---
 
+## Известные проблемы / TODO
+
+### Критические
+
+1. **isolated-browser — нет remote**
+   - **Статус:** Локальный репозиторий
+   - **Риск:** Потеря данных при сбое диска
+   - **Решение:** Создать GitHub repo и привязать remote
+   - **Команда:** `git remote add origin git@github.com:r9549684-dev/isolated-browser.git && git push -u origin wip-flutter`
+
+2. **DuckDNS как дефолтный эндпоинт**
+   - **Статус:** `https://safenetsystem.duckdns.org` захардкожен как defaultValue
+   - **Риск:** DuckDNS легко блокируется цензорами (бесплатный dynamic-DNS)
+   - **Решение:** Рассмотреть domain-fronting, несколько резервных эндпоинтов
+   - **Временное решение:** Передавать через `--dart-define=API_BASE_URL=...`
+
+### Важные
+
+3. **safenet-vps — секреты в истории git**
+   - **Статус:** Пароли удалены из текущих файлов, но могут быть в истории
+   - **Решение:** `git filter-repo` для очистки истории
+   - **Приоритет:** Высокий, если планируется публикация репо
+
+4. **Fat APK с 3 ABI**
+   - **Статус:** 48.79 MB (сжатый), 128.48 MB (uncompressed)
+   - **Решение:** Split per ABI или только arm64-v8a
+   - **Ожидаемый размер:** 15-20 MB для arm64 only
+
+---
+
+## Восстановление окружения с нуля
+
+### 1. Ключи и секреты
+
+**SSH ключи:**
+- `C:\Users\53\.ssh\id_ed25519_felix` — доступ к Server #1
+- `C:\Users\53\.ssh\id_ed25519_s1` — доступ к Server #2
+- `C:\Users\53\.ssh\id_ed25519` — GitHub (r9549684-dev)
+
+**Секреты SafeNet:**
+- `D:\Felix\projects\safenet-vps\.env` — все пароли, ключи Xray, токены
+- `D:\SafeNet\keys\.env` — дополнительные секреты
+
+### 2. Flutter SDK
+
+**Путь:** `C:\src\flutter` (v3.29.0, Dart 3.7.0)
+
+**Установка:**
+```powershell
+# Скачать Flutter SDK
+# https://docs.flutter.dev/get-started/install/windows
+
+# Добавить в PATH
+[System.Environment]::SetEnvironmentVariable('PATH', "$env:PATH;C:\src\flutter\bin", 'User')
+
+# Проверка
+flutter doctor
+```
+
+### 3. Ключи для сборки
+
+**sing-box бинарники (для iran/china):**
+- `assets\singbox\sing-box-arm64`
+- `assets\singbox\tun2socks-arm64`
+
+**Откуда получить:**
+- Скачать из релизов: https://github.com/SagerNet/sing-box/releases
+- Или скопировать из существующей сборки
+
+### 4. Серверы
+
+**Server #1 (Master):**
+```powershell
+ssh -o IdentitiesOnly=yes -i C:\Users\53\.ssh\id_ed25519_felix root@38.180.253.219
+```
+
+**Server #2 (Gateway):**
+```powershell
+ssh safenet2  # алиас в ~/.ssh/config
+```
+
+### 5. Переменные окружения
+
+**Для отладки с прямым IP:**
+```powershell
+.\build.ps1 -Flavor standard -ApiUrl "http://38.180.253.219:8001"
+```
+
+**Для prod (по умолчанию):**
+```powershell
+.\build.ps1 -Flavor standard  # использует https://safenetsystem.duckdns.org
+```
+
+---
+
 *Документ создан: 2026-06-27*  
 *Автор: qwen/qwen3.7-plus (по заданию Claude Opus 4.8)*
