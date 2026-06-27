@@ -203,25 +203,7 @@ class VpnProvider extends ChangeNotifier {
             );
           }
 
-          // Trojan-first: обходит DPI, маскируется под HTTPS
-          final trojanConfig = activeConfig['trojan_config'] as Map<String, dynamic>?;
-          if (trojanConfig != null &&
-              TrojanSingboxConverter.isValid(trojanConfig)) {
-            try {
-              final singboxJson = TrojanSingboxConverter.toSingboxJson(trojanConfig);
-              final ok = await SingboxVpn.start(singboxJson);
-              if (ok) {
-                _usingSingbox = true;
-                _finishConnect();
-                return;
-              }
-              print('[TROJAN] SingboxVpn.start() failed — fallback to VLESS');
-            } catch (e) {
-              print('[TROJAN] convert/start error: $e — fallback to VLESS');
-            }
-          }
-
-          // VLESS-second: Reality+Fragment
+          // VLESS-first: Reality+Fragment (primary_protocol = "vless")
           final vlessConfig = activeConfig['vless_config'] as Map<String, dynamic>?;
           if (vlessConfig != null &&
               VlessSingboxConverter.isValid(vlessConfig)) {
@@ -233,9 +215,27 @@ class VpnProvider extends ChangeNotifier {
                 _finishConnect();
                 return;
               }
-              print('[VLESS] SingboxVpn.start() failed — fallback to AWG');
+              print('[VLESS] SingboxVpn.start() failed — fallback to Trojan');
             } catch (e) {
-              print('[VLESS] convert/start error: $e — fallback to AWG');
+              print('[VLESS] convert/start error: $e — fallback to Trojan');
+            }
+          }
+
+          // Trojan-second: fallback
+          final trojanConfig = activeConfig['trojan_config'] as Map<String, dynamic>?;
+          if (trojanConfig != null &&
+              TrojanSingboxConverter.isValid(trojanConfig)) {
+            try {
+              final singboxJson = TrojanSingboxConverter.toSingboxJson(trojanConfig);
+              final ok = await SingboxVpn.start(singboxJson);
+              if (ok) {
+                _usingSingbox = true;
+                _finishConnect();
+                return;
+              }
+              print('[TROJAN] SingboxVpn.start() failed — fallback to AWG');
+            } catch (e) {
+              print('[TROJAN] convert/start error: $e — fallback to AWG');
             }
           }
         }
