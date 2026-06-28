@@ -99,7 +99,9 @@ class SingboxVpnService : VpnService() {
             // CRITICAL FIX: Split tunneling — исключаем IP сервера из VPN routing
             // Вместо addRoute("0.0.0.0", 0) добавляем все маршруты КРОМЕ IP сервера
             // Это гарантирует, что трафик sing-box к серверу идёт через физическую сеть
-            addRoutesExcludingServer(builder, "38.180.253.219")
+            // CRITICAL FIX: Исключаем оба IP — Master Node и Frontend Gateway
+            addRoutesExcludingServer(builder, "38.180.253.219")  // Master Node
+            addRoutesExcludingServer(builder, "38.244.136.233")  // Frontend Gateway
             
             // CRITICAL FIX: IPv6 только если поддерживается
             if (hasIPv6Connectivity()) {
@@ -285,9 +287,11 @@ class SingboxVpnService : VpnService() {
                     put("outbound", "direct")
                 })
                 // CRITICAL FIX: IP сервера — напрямую (дополнительная защита от loopback)
+                // CRITICAL FIX: Исключаем оба IP — Master Node и Frontend Gateway
                 put(JSONObject().apply {
                     put("ip_cidr", JSONArray().apply {
-                        put("38.180.253.219/32")
+                        put("38.180.253.219/32")  // Master Node
+                        put("38.244.136.233/32")  // Frontend Gateway
                     })
                     put("outbound", "direct")
                 })

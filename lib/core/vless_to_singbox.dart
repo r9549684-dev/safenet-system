@@ -47,9 +47,8 @@ class VlessSingboxConverter {
       },
     };
 
-    // Fragment: sing-box требует tls.fragment как boolean (не объект!)
-    // Включаем TLS fragmentation для обхода DPI
-    tlsBlock['fragment'] = true;
+    // Fragment отключен — может конфликтовать с Reality
+    // tlsBlock['fragment'] = true;
 
     final outbound = <String, dynamic>{
       'type': 'vless',
