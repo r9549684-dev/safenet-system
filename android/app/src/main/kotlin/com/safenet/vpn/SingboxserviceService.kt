@@ -97,11 +97,10 @@ class SingboxVpnService : VpnService() {
             try { builder.addDisallowedApplication(packageName) } catch (_: Exception) {}
             
             // CRITICAL FIX: Split tunneling — исключаем IP сервера из VPN routing
-            // Вместо addRoute("0.0.0.0", 0) добавляем все маршруты КРОМЕ IP сервера
+            // Вместо addRoute("0.0.0.0", 0) добавляем все маршруты КРОМЕ IP серверов
             // Это гарантирует, что трафик sing-box к серверу идёт через физическую сеть
-            // CRITICAL FIX: Исключаем оба IP — Master Node и Frontend Gateway
-            addRoutesExcludingServer(builder, "38.180.253.219")  // Master Node
-            addRoutesExcludingServer(builder, "38.244.136.233")  // Frontend Gateway
+            // CRITICAL FIX: Исключаем оба IP одновременно — Master Node и Frontend Gateway
+            addRoutesExcludingServers(builder, listOf("38.180.253.219", "38.244.136.233"))
             
             // CRITICAL FIX: IPv6 только если поддерживается
             if (hasIPv6Connectivity()) {
@@ -326,24 +325,24 @@ class SingboxVpnService : VpnService() {
     // ── Split tunneling helpers ──────────────────────────────────────────────────
 
     /**
-     * CRITICAL FIX: Split tunneling через разбиение маршрутов.
-     *
-     * Вместо addRoute("0.0.0.0", 0) добавляем все маршруты КРОМЕ IP сервера.
-     * Это гарантирует, что трафик sing-box к серверу идёт через физическую сеть,
+     * Добавляет маршруты, покрывающие 0.0.0.0/0, КРОМЕ указанных IP серверов.
+     * Вместо addRoute("0.0.0.0", 0) добавляем все маршруты КРОМЕ IP серверов.
+     * Это гарантирует, что трафик sing-box к серверам идёт через физическую сеть,
      * минуя TUN интерфейс.
      *
-     * Алгоритм: покрываем 0.0.0.0/0 набором подсетей, исключая /32 сервера.
+     * Алгоритм: покрываем 0.0.0.0/0 набором подсетей, исключая /32 серверов.
      */
-    private fun addRoutesExcludingServer(builder: Builder, excludeIp: String) {
-        val serverAddr = java.net.InetAddress.getByName(excludeIp)
-        val serverBytes = serverAddr.address
-        val serverInt = ((serverBytes[0].toInt() and 0xFF) shl 24) or
-                        ((serverBytes[1].toInt() and 0xFF) shl 16) or
-                        ((serverBytes[2].toInt() and 0xFF) shl 8) or
-                         (serverBytes[3].toInt() and 0xFF)
+    private fun addRoutesExcludingServers(builder: Builder, excludeIps: List<String>) {
+        val excludeInts = excludeIps.map { ip ->
+            val addr = java.net.InetAddress.getByName(ip)
+            val bytes = addr.address
+            ((bytes[0].toInt() and 0xFF) shl 24) or
+            ((bytes[1].toInt() and 0xFF) shl 16) or
+            ((bytes[2].toInt() and 0xFF) shl 8) or
+             (bytes[3].toInt() and 0xFF)
+        }
 
-        // Генерируем маршруты покрывающие 0.0.0.0/0 минус serverIp/32
-        val routes = generateRoutesExcluding(0, 0, serverInt)
+        val routes = generateRoutesExcludingMultiple(0, 0, excludeInts)
 
         var addedCount = 0
         for ((addr, prefix) in routes) {
@@ -356,20 +355,20 @@ class SingboxVpnService : VpnService() {
             }
         }
 
-        Log.d(TAG, "Added $addedCount routes excluding $excludeIp")
+        Log.d(TAG, "Added $addedCount routes excluding ${excludeIps.size} servers: $excludeIps")
     }
 
     /**
      * Рекурсивно генерирует список подсетей, покрывающих
-     * networkAddr/prefix минус excludeIp/32.
+     * networkAddr/prefix минус несколько excludeIps.
      */
-    private fun generateRoutesExcluding(
+    private fun generateRoutesExcludingMultiple(
         networkAddr: Int,
         prefix: Int,
-        excludeIp: Int
+        excludeIps: List<Int>
     ): List<Pair<Int, Int>> {
         if (prefix == 32) {
-            return if (networkAddr == excludeIp) emptyList()
+            return if (excludeIps.contains(networkAddr)) emptyList()
             else listOf(Pair(networkAddr, 32))
         }
 
@@ -377,7 +376,8 @@ class SingboxVpnService : VpnService() {
         val networkStart = networkAddr and mask
         val networkEnd = networkStart or mask.inv()
 
-        if (excludeIp < networkStart || excludeIp > networkEnd) {
+        val anyInRange = excludeIps.any { it in networkStart..networkEnd }
+        if (!anyInRange) {
             return listOf(Pair(networkStart, prefix))
         }
 
@@ -386,13 +386,13 @@ class SingboxVpnService : VpnService() {
         val firstHalf = networkStart
         val secondHalf = networkStart + halfSize
 
-        return generateRoutesExcluding(firstHalf, halfPrefix, excludeIp) +
-               generateRoutesExcluding(secondHalf, halfPrefix, excludeIp)
+        return generateRoutesExcludingMultiple(firstHalf, halfPrefix, excludeIps) +
+               generateRoutesExcludingMultiple(secondHalf, halfPrefix, excludeIps)
     }
 
     private fun intToIpString(ip: Int): String {
         return "${(ip shr 24) and 0xFF}.${(ip shr 16) and 0xFF}" +
-               ".${(ip shr 8) and 0xFF}.${ip and 0xFF}"
+                ".${(ip shr 8) and 0xFF}.${ip and 0xFF}"
     }
 
     /**
