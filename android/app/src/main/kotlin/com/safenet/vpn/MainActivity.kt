@@ -242,10 +242,12 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun launchSingbox(cfg: String, result: MethodChannel.Result) {
+        Log.i(TAG, "launchSingbox() called, config length: ${cfg.length}")
         startService(Intent(this, SingboxVpnService::class.java).apply {
             action = SingboxVpnService.ACTION_START
             putExtra(SingboxVpnService.EXTRA_OUTBOUNDS_JSON, cfg)
         })
+        Log.i(TAG, "SingboxVpnService startService() called")
         result.success(mapOf("status" to "starting"))
     }
 

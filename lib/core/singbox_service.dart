@@ -31,12 +31,18 @@ class SingboxVpn {
   /// Запустить Iran service.
   /// [configJson] — JSON из API (только outbounds + route).
   static Future<bool> start(String configJson) async {
+    print('[SingboxVpn] start() called, config length: ${configJson.length}');
     try {
+      print('[SingboxVpn] Invoking method channel start...');
       await _channel.invokeMethod('start', {'config': configJson});
+      print('[SingboxVpn] Method channel start completed successfully');
       return true;
     } on PlatformException catch (e) {
       // ignore: avoid_print
-      print('[SingboxVpn] start error: ${e.code} — ${e.message}');
+      print('[SingboxVpn] PlatformException: ${e.code} — ${e.message}');
+      return false;
+    } catch (e) {
+      print('[SingboxVpn] Unexpected error: $e');
       return false;
     }
   }

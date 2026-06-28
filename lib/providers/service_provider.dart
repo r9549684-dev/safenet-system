@@ -205,11 +205,22 @@ class VpnProvider extends ChangeNotifier {
 
           // VLESS-first: Reality+Fragment (primary_protocol = "vless")
           final vlessConfig = activeConfig['vless_config'] as Map<String, dynamic>?;
+          print('[VLESS] vlessConfig present: ${vlessConfig != null}, keys: ${vlessConfig?.keys.toList()}');
+          if (vlessConfig != null) {
+            final isValid = VlessSingboxConverter.isValid(vlessConfig);
+            print('[VLESS] isValid: $isValid');
+            if (!isValid) {
+              print('[VLESS] Config invalid, missing required fields');
+            }
+          }
           if (vlessConfig != null &&
               VlessSingboxConverter.isValid(vlessConfig)) {
             try {
+              print('[VLESS] Converting to singbox JSON...');
               final singboxJson = VlessSingboxConverter.toSingboxJson(vlessConfig);
+              print('[VLESS] Starting SingboxVpn...');
               final ok = await SingboxVpn.start(singboxJson);
+              print('[VLESS] SingboxVpn.start() returned: $ok');
               if (ok) {
                 _usingSingbox = true;
                 _finishConnect();
@@ -219,15 +230,25 @@ class VpnProvider extends ChangeNotifier {
             } catch (e) {
               print('[VLESS] convert/start error: $e — fallback to Trojan');
             }
+          } else {
+            print('[VLESS] Skipping VLESS — config null or invalid');
           }
 
           // Trojan-second: fallback
           final trojanConfig = activeConfig['trojan_config'] as Map<String, dynamic>?;
+          print('[TROJAN] trojanConfig present: ${trojanConfig != null}, keys: ${trojanConfig?.keys.toList()}');
+          if (trojanConfig != null) {
+            final isValid = TrojanSingboxConverter.isValid(trojanConfig);
+            print('[TROJAN] isValid: $isValid');
+          }
           if (trojanConfig != null &&
               TrojanSingboxConverter.isValid(trojanConfig)) {
             try {
+              print('[TROJAN] Converting to singbox JSON...');
               final singboxJson = TrojanSingboxConverter.toSingboxJson(trojanConfig);
+              print('[TROJAN] Starting SingboxVpn...');
               final ok = await SingboxVpn.start(singboxJson);
+              print('[TROJAN] SingboxVpn.start() returned: $ok');
               if (ok) {
                 _usingSingbox = true;
                 _finishConnect();
@@ -237,6 +258,8 @@ class VpnProvider extends ChangeNotifier {
             } catch (e) {
               print('[TROJAN] convert/start error: $e — fallback to AWG');
             }
+          } else {
+            print('[TROJAN] Skipping Trojan — config null or invalid');
           }
         }
       } catch (_) {

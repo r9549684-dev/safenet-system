@@ -76,12 +76,15 @@ class SingboxVpnService : VpnService() {
     // ── Core logic ────────────────────────────────────────────────────────────
 
     private fun startVpn(outboundsJson: String) {
+        Log.i(TAG, "startVpn() called, config length: ${outboundsJson.length}")
         try {
             lastError = null
+            Log.i(TAG, "Loading binaries...")
 
             // 1. Бинарники из nativeLibraryDir (SELinux-разрешённая директория)
             val singboxBin   = getBinary("libsingbox.so")
             val tun2socksBin = getBinary("libtun2socks.so")
+            Log.i(TAG, "Binaries loaded successfully")
 
             // 2. Android VPN TUN
             // CRITICAL FIX: Уменьшен MTU для overhead туннеля (VLESS+Reality+Fragment)
@@ -333,23 +336,28 @@ class SingboxVpnService : VpnService() {
      * Алгоритм: покрываем 0.0.0.0/0 набором подсетей, исключая /32 серверов.
      */
     private fun addRoutesExcludingServers(builder: Builder, excludeIps: List<String>) {
-        val excludeInts = excludeIps.map { ip ->
+        val excludeLongs = excludeIps.map { ip ->
             val addr = java.net.InetAddress.getByName(ip)
             val bytes = addr.address
-            ((bytes[0].toInt() and 0xFF) shl 24) or
-            ((bytes[1].toInt() and 0xFF) shl 16) or
-            ((bytes[2].toInt() and 0xFF) shl 8) or
-             (bytes[3].toInt() and 0xFF)
+            val result = ((bytes[0].toLong() and 0xFF) shl 24) or
+            ((bytes[1].toLong() and 0xFF) shl 16) or
+            ((bytes[2].toLong() and 0xFF) shl 8) or
+             (bytes[3].toLong() and 0xFF)
+            Log.d(TAG, "Excluding IP $ip = $result (0x${result.toString(16)})")
+            result
         }
 
-        val routes = generateRoutesExcludingMultiple(0, 0, excludeInts)
+        val routes = generateRoutesExcludingMultiple(0L, 0, excludeLongs)
 
         var addedCount = 0
         for ((addr, prefix) in routes) {
             try {
-                val ipStr = intToIpString(addr)
+                val ipStr = longToIpString(addr)
                 builder.addRoute(ipStr, prefix)
                 addedCount++
+                if (addedCount <= 5 || ipStr.startsWith("38.")) {
+                    Log.d(TAG, "Added route: $ipStr/$prefix")
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to add route: ${e.message}")
             }
@@ -361,33 +369,40 @@ class SingboxVpnService : VpnService() {
     /**
      * Рекурсивно генерирует список подсетей, покрывающих
      * networkAddr/prefix минус несколько excludeIps.
+     * Использует Long для беззнаковой арифметики IP-адресов.
      */
     private fun generateRoutesExcludingMultiple(
-        networkAddr: Int,
+        networkAddr: Long,
         prefix: Int,
-        excludeIps: List<Int>
-    ): List<Pair<Int, Int>> {
+        excludeIps: List<Long>
+    ): List<Pair<Long, Int>> {
         if (prefix == 32) {
             return if (excludeIps.contains(networkAddr)) emptyList()
             else listOf(Pair(networkAddr, 32))
         }
 
-        val mask = if (prefix == 0) 0 else (-1 shl (32 - prefix))
+        // Для беззнаковой арифметики используем маску 0xFFFFFFFFL
+        val mask = if (prefix == 0) 0L else ((-1L shl (32 - prefix)) and 0xFFFFFFFFL)
         val networkStart = networkAddr and mask
-        val networkEnd = networkStart or mask.inv()
+        val networkEnd = networkStart or (mask.inv() and 0xFFFFFFFFL)
 
-        val anyInRange = excludeIps.any { it in networkStart..networkEnd }
+        val anyInRange = excludeIps.any { it >= networkStart && it <= networkEnd }
         if (!anyInRange) {
             return listOf(Pair(networkStart, prefix))
         }
 
         val halfPrefix = prefix + 1
-        val halfSize = 1 shl (32 - halfPrefix)
+        val halfSize = 1L shl (32 - halfPrefix)
         val firstHalf = networkStart
         val secondHalf = networkStart + halfSize
 
         return generateRoutesExcludingMultiple(firstHalf, halfPrefix, excludeIps) +
                generateRoutesExcludingMultiple(secondHalf, halfPrefix, excludeIps)
+    }
+
+    private fun longToIpString(ip: Long): String {
+        return "${(ip shr 24) and 0xFF}.${(ip shr 16) and 0xFF}" +
+                ".${(ip shr 8) and 0xFF}.${ip and 0xFF}"
     }
 
     private fun intToIpString(ip: Int): String {
