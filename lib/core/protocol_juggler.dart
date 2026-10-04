@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'bootstrap_service.dart';
 
 /// Типы протоколов для VPN подключения
 enum ProtocolType {
@@ -279,6 +280,45 @@ class ProtocolJuggler {
     }
 
     print('[JUGGLER] ❌ All protocols failed');
+    
+    print('[JUGGLER] 🆘 Attempting bootstrap fallback...');
+    final bootstrapConfig = await BootstrapService.loadBootstrapConfig();
+    if (bootstrapConfig != null) {
+      print('[JUGGLER] 📦 Bootstrap config loaded, trying to connect...');
+      try {
+        final started = await startVpn(bootstrapConfig);
+        if (started) {
+          print('[JUGGLER] 🔍 Running readiness check for bootstrap...');
+          final healthy = await waitUntilReady(
+            ProtocolType.trojan,
+            isPortOpenFn: isPortOpenFn,
+            isTunnelLiveFn: isTunnelLiveFn,
+            budgetOverride: budgetOverride,
+          );
+          
+          if (healthy) {
+            print('[JUGGLER] ✅ Bootstrap connected and healthy');
+            return ProtocolJugglerResult(
+              connected: true,
+              protocol: ProtocolType.trojan,
+            );
+          }
+          
+          print('[JUGGLER] ❌ Bootstrap health check failed');
+          await stopVpn();
+        } else {
+          print('[JUGGLER] ❌ Bootstrap start() returned false');
+        }
+      } catch (e) {
+        print('[JUGGLER] ❌ Bootstrap exception: $e');
+        try {
+          await stopVpn();
+        } catch (_) {}
+      }
+    } else {
+      print('[JUGGLER] ❌ Bootstrap config not available');
+    }
+    
     return ProtocolJugglerResult(
       connected: false,
       protocol: null,

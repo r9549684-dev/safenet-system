@@ -54,6 +54,7 @@ flutter:
   assets:
     - assets/images/
     - assets/animations/
+    - assets/bootstrap_config.json
     # assets/singbox/  # Iran build only (build_iran.ps1)
   fonts:
     - family: Vazirmatn
